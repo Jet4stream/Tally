@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { Public_Sans, PT_Sans } from "next/font/google";
 import "./globals.css";
-// import { clerkMiddleware } from '@clerk/nextjs/server';
 import { ClerkProvider } from "@clerk/nextjs";
-
-// export default clerkMiddleware();
-
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
