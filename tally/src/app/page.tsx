@@ -6,7 +6,7 @@ export default function Page() {
     <div>
       <NavBar />
       <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px]">
-        {/* <TabSpacer /> */}
+        <TabSpacer />
       </div>
     </div>
   );

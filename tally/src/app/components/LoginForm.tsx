@@ -1,8 +1,12 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// Using your existing asset paths
+import { useSignIn } from "@clerk/nextjs"
+import { useRouter } from "next/navigation";
+
 import logoFrame from '../assests/Frame.svg';
 import logoText from '../assests/Group 1.svg';
 
@@ -12,10 +16,54 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const router = useRouter();
+  // Track input states
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if both fields are filled
+  const isFormValid = email.trim() !== '' && password.trim() !== '';
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!isLoaded) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+
+        // 🔥 Redirect after login
+        router.push("/");
+      } else {
+        setError("Additional verification required.");
+      }
+    } catch (err: any) {
+      const clerkError = err?.errors?.[0];
+      setError(
+        clerkError?.longMessage ||
+        clerkError?.message ||
+        "Login failed."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#3b71b1] flex items-center justify-center relative overflow-hidden font-sans">
       
-      {/* Background Decorative Rings - Only for Club scenario */}
+      {/* Background Decorative Rings */}
       {!isTCU && (
         <>
           <div className="absolute -bottom-16 -right-16 w-64 h-64 border-[32px] border-white/10 rounded-full" />
@@ -43,10 +91,12 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
         </div>
 
         {/* Form */}
-        <form className="flex flex-col gap-5">
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <input
             type="email"
             placeholder="Tufts email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
             required
           />
@@ -54,13 +104,17 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
           <input
             type="password"
             placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
             required
           />
 
           <button
             type="submit"
-            className="w-full bg-[#4a7cb9] hover:bg-[#3172AE] text-white font-bold py-4 rounded-xl transition-all mt-3 shadow-md text-[14px] font-[family-name:var(--font-pt-sans)]"
+            disabled={!isFormValid}
+            style={{ backgroundColor: isFormValid ? '#4a7cb9' : '#EAEAEA' }}
+            className={`w-full ${isFormValid ? 'text-white' : 'text-gray-400'} font-bold py-4 rounded-xl transition-all mt-3 shadow-md text-[14px] font-[family-name:var(--font-pt-sans)]`}
           >
             Log in
           </button>
@@ -74,8 +128,8 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
             </p>
           ) : (
             <>
-              <div className="text-gray-900 font-bold">
-                <p>Don't have an account?</p>
+              <div className="text-gray-900 font-bold text-center">
+                <p>Don&apos;t have an account?</p>
                 <p className="font-normal text-gray-600">Club members: Contact your club treasurer.</p>
                 <p className="font-normal text-gray-600">Club treasurers: Contact TCU Treasury.</p>
               </div>
