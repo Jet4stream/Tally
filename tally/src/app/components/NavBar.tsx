@@ -4,7 +4,7 @@ import userIcon from "../assests/userIcon.svg";
 
 export default function NavBar() {
   return (
-    <div className="fixed top-0 inset-x-0 h-[80px] sm:h-[100px] lg:h-[124px] w-full max-w-[1440px] mx-auto bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
+    <div className="fixed top-0 inset-x-0 h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
       <div className="flex flex-col gap-1 sm:gap-[8px] min-w-0">
         <div className="flex items-center gap-[8px]">
           <Image src={tallyLogo} alt="Tally logo" width={21} height={21} className="w-4 sm:w-5 lg:w-[21px] h-auto" />
