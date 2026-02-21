@@ -3,76 +3,76 @@ import styles from "./page.module.css";
 
 export default function Home() {
 
-  const handleClick = async () => {
-  setSubmitError("");
-  if (!isLoaded) return;
+  // const handleClick = async () => {
+  // setSubmitError("");
+  // if (!isLoaded) return;
 
-  if (password !== repeatPassword) {
-    setSubmitError("Passwords do not match.");
-    return;
-  }
+  // if (password !== repeatPassword) {
+  //   setSubmitError("Passwords do not match.");
+  //   return;
+  // }
 
-  try {
-    // 1) Create Clerk account
-    const result = await signUp.create({
-      emailAddress: email,
-      password,
-      firstName,
-      lastName,
-    });
+  // try {  
+  //   // 1) Create Clerk account
+  //   const result = await signUp.create({
+  //     emailAddress: email,
+  //     password,
+  //     firstName,
+  //     lastName,
+  //   });
 
-    const clerkId = result.createdUserId;
-    if (!clerkId) {
-      setSubmitError("Clerk user was created but no userId was returned.");
-      return;
-    }
+  //   const clerkId = result.createdUserId;
+  //   if (!clerkId) {
+  //     setSubmitError("Clerk user was created but no userId was returned.");
+  //     return;
+  //   }
 
-    // 2) Create Supabase/Prisma user (YOUR axios helper)
-    // IMPORTANT: You said you only create when you have all variables.
-    // For now, fill addresses/studentId with whatever your UI collects.
-    await createUser({
-      id: clerkId,
-      firstName,
-      lastName,
-      email,
-      role: "STANDARD", // or use `type` mapping
+  //   // 2) Create Supabase/Prisma user (YOUR axios helper)
+  //   // IMPORTANT: You said you only create when you have all variables.
+  //   // For now, fill addresses/studentId with whatever your UI collects.
+  //   await createUser({
+  //     id: clerkId,
+  //     firstName,
+  //     lastName,
+  //     email,
+  //     role: "STANDARD", // or use `type` mapping
 
-      studentId: "12345678",          // TODO: replace with real input
-      phoneNumber: phone,
+  //     studentId: "12345678",          // TODO: replace with real input
+  //     phoneNumber: phone,
 
-      permAddress1: "123 Permanent St", // TODO: replace with real input
-      permCity: "Tacoma",
-      permState: "WA",
-      permZip: "98402",
+  //     permAddress1: "123 Permanent St", // TODO: replace with real input
+  //     permCity: "Tacoma",
+  //     permState: "WA",
+  //     permZip: "98402",
 
-      tempAddress1: "456 Temporary Ave", // TODO: replace with real input
-      tempCity: "Medford",
-      tempState: "MA",
-      tempZip: "02155",
-    });
+  //     tempAddress1: "456 Temporary Ave", // TODO: replace with real input
+  //     tempCity: "Medford",
+  //     tempState: "MA",
+  //     tempZip: "02155",
+  //   });
 
-    // 3) Start email verification (keep your flow)
-    await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+  //   // 3) Start email verification (keep your flow)
+  //   await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
-    router.push(`/pages/verifyEmail?type=${type}`);
-  } catch (err: any) {
-    const clerkError = err?.errors?.[0];
-    const code = clerkError?.code;
+  //   router.push(`/pages/verifyEmail?type=${type}`);
+  // } catch (err: any) {
+  //   const clerkError = err?.errors?.[0];
+  //   const code = clerkError?.code;
 
-    if (code === "form_identifier_exists") {
-      setSubmitError("An account with that email already exists. Try logging in instead.");
-      return;
-    }
+  //   if (code === "form_identifier_exists") {
+  //     setSubmitError("An account with that email already exists. Try logging in instead.");
+  //     return;
+  //   }
 
-    const msg =
-      clerkError?.longMessage ||
-      clerkError?.message ||
-      err?.message ||
-      "Sign up failed.";
+  //   const msg =
+  //     clerkError?.longMessage ||
+  //     clerkError?.message ||
+  //     err?.message ||
+  //     "Sign up failed.";
 
-    setSubmitError(msg);
-  }
-};
+  //   setSubmitError(msg);
+  // }
+// };
   return (
     <div className={styles.page}>
       <main className={styles.main}>
