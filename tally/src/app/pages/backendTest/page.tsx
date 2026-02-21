@@ -298,9 +298,9 @@ export default function BackendTestPage() {
 
   // ================== UI ==================
   return (
-    <div className="min-h-screen flex justify-center px-4 py-10 bg-gray-50">
-      <main className="w-full max-w-5xl flex flex-col gap-6">
-        <div className="flex items-end justify-between gap-4">
+    <div className="h-screen overflow-hidden bg-gray-50">
+      <main className="h-full overflow-y-auto flex justify-center px-4 py-10">
+        <div className="w-full max-w-5xl flex flex-col gap-6">
           <div>
             <h1 className="text-3xl font-bold">Backend Test Page</h1>
             <p className="text-gray-600">
@@ -574,33 +574,7 @@ export default function BackendTestPage() {
           </Card>
         </div>
 
-        {/* LOG */}
-        <section className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Log (latest first)</h2>
-          <div className="mt-3 grid gap-3">
-            {log.length === 0 ? (
-              <div className="text-sm text-gray-500">
-                No requests yet. Click a button above.
-              </div>
-            ) : (
-              log.map((entry, idx) => (
-                <div key={idx} className="rounded-xl border border-gray-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold">{entry.label}</div>
-                    <div className="text-xs text-gray-500">{entry.ts}</div>
-                  </div>
-                  {entry.error ? (
-                    <div className="mt-2 text-sm text-red-700">{entry.error}</div>
-                  ) : (
-                    <pre className="mt-2 text-xs overflow-auto bg-gray-50 p-3 rounded-lg">
-                      {JSON.stringify(entry.data, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </section>
+        
       </main>
     </div>
   );
