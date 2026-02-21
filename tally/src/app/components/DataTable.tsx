@@ -1,7 +1,16 @@
 import Image from "next/image";
 import trashIcon from "../assests/trash.svg";
 import paperclipIcon from "../assests/paperclip.svg";
-//need to import into the RembursementTable component and pass in the data as props
+
+type Reimbursement = {
+  date: string;
+  payTo: string;
+  owed: string;
+  item: string;
+  event: string;
+  status: string;
+  statusColor: string;
+};
 
 export default function DataTable({ data, showDelete = true }: { data: Reimbursement[]; showDelete?: boolean }) {
   return (
@@ -41,3 +50,4 @@ export default function DataTable({ data, showDelete = true }: { data: Reimburse
     </div>
   );
 }
+

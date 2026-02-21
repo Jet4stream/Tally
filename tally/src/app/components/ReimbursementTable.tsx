@@ -1,19 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DataTable from "./DataTable";
 
-//need to import the reimbursement functions and types from the api file to fetch the data for the table
-import { getUnpaidReimbursements, getPaidReimbursements, Reimbursement }
+const unpaidData = [
+  { date: "2/20/26", payTo: "Ashley Wu", owed: "$46.79", item: "Dumpling wrappers", event: "Dumpling Night", status: "Submitted to TCU", statusColor: "text-gray-600" },
+  { date: "2/20/26", payTo: "Jet Yotsuuye", owed: "$13.90", item: "Oreos", event: "Lantern Making", status: "Rejected", statusColor: "text-red-500" },
+  { date: "1/23/26", payTo: "Kalen Lauring", owed: "$57.89", item: "Rice", event: "Dumpling Night", status: "Reimbursement processing", statusColor: "text-green-600" },
+  { date: "1/23/26", payTo: "Claire Lee", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
+  { date: "1/23/26", payTo: "Justin Paik", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
+  { date: "1/23/26", payTo: "Kevin Lu", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
+];
+
+const paidData = [
+  { date: "1/10/26", payTo: "Ashley Wu", owed: "$32.50", item: "Plates and cups", event: "Welcome Back Party", status: "Paid", statusColor: "text-gray-600" },
+  { date: "1/05/26", payTo: "Kalen Lauring", owed: "$45.00", item: "Decorations", event: "Welcome Back Party", status: "Paid", statusColor: "text-gray-600" },
+];
 
 export default function ReimbursementTable() {
   const [subTab, setSubTab] = useState("unpaid");
-  const [unpaidData, setUnpaidData] = useState<Reimbursement[]>([]);
-  const [paidData, setPaidData] = useState<Reimbursement[]>([]);
-
-  useEffect(() => {
-    getUnpaidReimbursements().then(setUnpaidData);
-    getPaidReimbursements().then(setPaidData);
-  }, []);
 
   return (
     <div className="px-[32px] pt-[16px]">
@@ -44,8 +48,8 @@ export default function ReimbursementTable() {
         </button>
       </div>
 
-      {subTab === "unpaid" && <DataTable data={unpaidData} showDelete={true} />}
-      {subTab === "paid" && <DataTable data={paidData} showDelete={false} />}
+    {subTab === "unpaid" && <DataTable data={unpaidData} showDelete={true} />}
+    {subTab === "paid" && <DataTable data={paidData} showDelete={false} />}
       {subTab === "members" && <div>Club Members content</div>}
     </div>
   );
