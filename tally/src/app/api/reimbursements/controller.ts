@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { ReimbursementStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+export type ReimbursementWithPayee =
+  Prisma.ReimbursementGetPayload<{
+    include: {
+      payee: { select: { id: true; firstName: true; lastName: true; email: true } };
+    };
+  }>;
 
 export const createReimbursementSchema = z.object({
   clubId: z.string().uuid(),
@@ -72,9 +80,16 @@ export async function getOneReimbursementController(id: string) {
   return prisma.reimbursement.findUnique({ where: { id } });
 }
 
-export async function getReimbursementsByPayeeUserIdController(payeeUserId: string) {
+export async function getReimbursementsByPayeeUserIdController(
+  payeeUserId: string
+): Promise<ReimbursementWithPayee[]> {
   return prisma.reimbursement.findMany({
     where: { payeeUserId },
+    include: {
+      payee: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+    },
     orderBy: { submittedAt: "desc" },
   });
 }
