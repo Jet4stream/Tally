@@ -40,6 +40,9 @@ export default function Home() {
         firstName,
         lastName,
       });
+      console.log("signUp.create result:", result);
+      console.log("status:", result.status);
+      console.log("createdUserId:", result.createdUserId);
 
       const clerkId = result.createdUserId;
       if (!clerkId) {
@@ -65,8 +68,8 @@ export default function Home() {
         tempZip: "02155",
       });
 
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      router.push(`/verifyEmail?type=${type}`);
+      // await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      // router.push(`/verifyEmail?type=${type}`);
     } catch (err: any) {
       const clerkError = err?.errors?.[0];
       const code = clerkError?.code;
@@ -160,6 +163,8 @@ export default function Home() {
           {submitError && (
             <div className="text-sm text-red-600">{submitError}</div>
           )}
+
+          <div id="clerk-captcha" />
 
           <button
             onClick={handleClick}
