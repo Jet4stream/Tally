@@ -4,6 +4,7 @@ import DataTable from "./DataTable";
 import { Reimbursement } from "@prisma/client";
 import { useUser } from "@clerk/nextjs";
 import { getReimbursementsByPayeeUserId } from "@/lib/api/reimbursement";
+import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 const unpaidData = [
   { date: "2/20/26", payTo: "Ashley Wu", owed: "$46.79", item: "Dumpling wrappers", event: "Dumpling Night", status: "Submitted to TCU", statusColor: "text-gray-600" },
@@ -21,7 +22,7 @@ const paidData = [
 
 export default function ReimbursementTable() {
   const [subTab, setSubTab] = useState<string>("unpaid");
-  const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
+  const [reimbursements, setReimbursements] = useState<ReimbursementWithPayee[]>([])
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const { user, isLoaded } = useUser();
@@ -31,7 +32,7 @@ export default function ReimbursementTable() {
   const { unpaidRows, paidRows } = useMemo(() => {
     const mapped = reimbursements.map((r) => ({
       date: new Date(r.submittedAt).toLocaleDateString("en-US"),
-      payTo: r.payeeUserId,
+      payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
       owed: `$${(r.amountCents / 100).toFixed(2)}`,
       item: r.description ?? "",
       event: r.clubName ?? "",

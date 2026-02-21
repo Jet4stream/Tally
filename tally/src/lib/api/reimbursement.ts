@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Reimbursement } from "@prisma/client";
-// import type { ReimbursementWithPayee } from "@//reimbursement";
+import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 
 type ApiResponse<T> = { code: string; message?: string; data: T };
@@ -31,8 +31,8 @@ export const getReimbursementById = async (id: string): Promise<Reimbursement> =
   return res.data.data;
 };
 
-export const getReimbursementsByPayeeUserId = async (payeeUserId: string): Promise<Reimbursement[]> => {
-  const res = await axios.get<ApiResponse<Reimbursement[]>>(
+export const getReimbursementsByPayeeUserId = async (payeeUserId: string) => {
+  const res = await axios.get<ApiResponse<ReimbursementWithPayee[]>>(
     `/api/reimbursements?payeeUserId=${encodeURIComponent(payeeUserId)}`
   );
   return res.data.data;

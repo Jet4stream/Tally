@@ -43,7 +43,6 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
 
-        // 🔥 Redirect after login
         router.push("/");
       } else {
         setError("Additional verification required.");
