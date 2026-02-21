@@ -11,7 +11,7 @@ export default function TabSpacer() {
         <div className="flex">
           <button
             onClick={() => setActiveTab("reimbursements")}
-            className={`px-8 sm:px-12 lg:px-16 py-2 sm:py-3 rounded-t-xl font-[family-name:var(--font-public-sans)] text-xs sm:text-sm lg:text-base ${
+            className={`px-8 sm:px-12 lg:px-16 py-2 sm:py-3 rounded-t-xl font-[family-name:var(--font-public-sans)] font-medium text-sm sm:text-base lg:text-lg ${
                 activeTab === "reimbursements"
                 ? "bg-white text-black"
                 : "bg-[#EAEAEA] text-[#8D8B8B]"
@@ -21,7 +21,7 @@ export default function TabSpacer() {
             </button>
             <button
             onClick={() => setActiveTab("budget")}
-            className={`px-8 sm:px-12 lg:px-16 py-2 sm:py-3 rounded-t-xl font-[family-name:var(--font-public-sans)] text-xs sm:text-sm lg:text-base ${
+            className={`px-8 sm:px-12 lg:px-16 py-2 sm:py-3 rounded-t-xl font-[family-name:var(--font-public-sans)] font-medium text-sm sm:text-base lg:text-lg ${
                 activeTab === "budget"
                 ? "bg-white text-black"
                 : "bg-[#EAEAEA] text-[#8D8B8B]"
