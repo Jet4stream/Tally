@@ -7,12 +7,12 @@ import { getReimbursementsByPayeeUserId } from "@/lib/api/reimbursement";
 import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 const unpaidData = [
-  { date: "2/20/26", payTo: "Ashley Wu", owed: "$46.79", item: "Dumpling wrappers", event: "Dumpling Night", status: "Submitted to TCU", statusColor: "text-gray-600" },
+  { date: "2/20/26", payTo: "Ashley Wu", owed: "$46.79", item: "Dumpling wrappers", event: "Dumpling Night", status: "Submitted to TCU", statusColor: "text-black" },
   { date: "2/20/26", payTo: "Jet Yotsuuye", owed: "$13.90", item: "Oreos", event: "Lantern Making", status: "Rejected", statusColor: "text-red-500" },
   { date: "1/23/26", payTo: "Kalen Lauring", owed: "$57.89", item: "Rice", event: "Dumpling Night", status: "Reimbursement processing", statusColor: "text-green-600" },
-  { date: "1/23/26", payTo: "Claire Lee", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
-  { date: "1/23/26", payTo: "Justin Paik", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
-  { date: "1/23/26", payTo: "Kevin Lu", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-gray-600" },
+  { date: "1/23/26", payTo: "Claire Lee", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-black" },
+  { date: "1/23/26", payTo: "Justin Paik", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-black" },
+  { date: "1/23/26", payTo: "Kevin Lu", owed: "$75.43", item: "Hi chews, pineapple cakes, jelly", event: "General Interesting Meeting", status: "Submitted to TCU", statusColor: "text-black" },
 ];
 
 const paidData = [
@@ -81,32 +81,32 @@ export default function ReimbursementTable() {
 
 
   return (
-    <div className="px-[32px] pt-[16px]">
-      <div className="flex gap-6 mb-4">
+    <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">
+      <div className="flex mb-4 border-b border-gray-200">
         <button
-          onClick={() => setSubTab("unpaid")}
-          className={`text-base font-[family-name:var(--font-public-sans)] pb-1 ${
-            subTab === "unpaid" ? "font-bold border-b-2 border-black" : "text-gray-400"
-          }`}
-        >
-          Unpaid
-        </button>
-        <button
-          onClick={() => setSubTab("paid")}
-          className={`text-base font-[family-name:var(--font-public-sans)] pb-1 ${
-            subTab === "paid" ? "font-bold border-b-2 border-black" : "text-gray-400"
-          }`}
-        >
-          Paid
-        </button>
-        <button
-          onClick={() => setSubTab("members")}
-          className={`text-base font-[family-name:var(--font-public-sans)] pb-1 ${
-            subTab === "members" ? "font-bold border-b-2 border-black" : "text-gray-400"
-          }`}
-        >
-          Club Members
-        </button>
+  onClick={() => setSubTab("unpaid")}
+  className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+    subTab === "unpaid" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
+  }`}
+>
+  Unpaid
+</button>
+<button
+  onClick={() => setSubTab("paid")}
+  className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+    subTab === "paid" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
+  }`}
+>
+  Paid
+</button>
+<button
+  onClick={() => setSubTab("members")}
+  className={`w-[110px] sm:w-[140px] lg:w-[160px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+    subTab === "members" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
+  }`}
+>
+  Club Members
+</button>
       </div>
 
     {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={true} />}
