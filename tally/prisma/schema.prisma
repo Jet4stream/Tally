@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum GlobalRole {
+  TCU_TREASURER
+  STANDARD
+}
+
+enum MembershipRole {
+  TREASURER
+  MEMBER
+}
+
+enum ReimbursementStatus {
+  SUBMITTED
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum BudgetCategory {
+  FOOD
+  NONFOOD
+}
+
+model User {
+  /// Clerk user id
+  id           String @id
+  email        String @unique
+  firstName    String?
+  lastName     String?
+  role         GlobalRole @default(STANDARD)
+
+  studentId    String?
+  phoneNumber  String?
+
+  permAddress1 String?
+  permCity     String?
+  permState    String?
+  permZip      String?
+
+  tempAddress1 String?
+  tempCity     String?
+  tempState    String?
+  tempZip      String?
+
+  memberships  ClubMembership[]
+
+  reimbursementsCreated Reimbursement[] @relation("CreatedBy")
+  reimbursementsPayee   Reimbursement[] @relation("Payee")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Club {
+  id           String @id @default(uuid())
+  name         String
+
+  memberships  ClubMembership[]
+  invites      ClubInvite[]
+  reimbursements Reimbursement[]
+
+  budgetSections BudgetSection[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ClubMembership {
+  id        String @id @default(uuid())
+  clubId    String
+  userId    String
+  role      MembershipRole
+
+  club      Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([clubId, userId])
+  @@index([userId])
+  @@index([clubId])
+}
+
+model ClubInvite {
+  id        String @id @default(uuid())
+  clubId    String
+  userEmail String
+  role      MembershipRole
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  club      Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([userEmail])
+  @@index([clubId])
+}
+
+model Reimbursement {
+  id               String @id @default(uuid())
+  clubId           String
+  clubName         String
+
+  createdUserId    String
+  payeeUserId      String
+
+  budgetItemId     String?
+
+  amountCents      Int
+  description      String?
+
+  status           ReimbursementStatus @default(SUBMITTED)
+  rejectionReason  String?
+
+  submittedAt      DateTime @default(now())
+  reviewedAt       DateTime?
+  paidAt           DateTime?
+
+  receiptFileUrl       String?
+  generatedFormPdfUrl  String?
+  packetPdfUrl         String?
+
+  club             Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdBy        User @relation("CreatedBy", fields: [createdUserId], references: [id], onDelete: Cascade)
+  payee            User @relation("Payee", fields: [payeeUserId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([clubId])
+  @@index([payeeUserId])
+  @@index([createdUserId])
+  @@index([status])
+}
+
+model BudgetSection {
+  id          String @id @default(uuid())
+  clubId      String
+  title       String
+  definition  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  club        Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  items       BudgetItem[]
+
+  @@index([clubId])
+}
+
+model BudgetItem {
+  id             String @id @default(uuid())
+  sectionId      String
+  label          String
+  category       BudgetCategory
+  allocatedCents Int
+  spentCents     Int @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  section        BudgetSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
