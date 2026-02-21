@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { PT_Sans, Public_Sans } from "next/font/google";
 import "./globals.css";
-// import { clerkMiddleware } from '@clerk/nextjs/server';
 import { ClerkProvider } from "@clerk/nextjs";
 
-// export default clerkMiddleware();
-
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const publicSans = Public_Sans({
   subsets: ["latin"],
+  variable: "--font-public-sans",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ptSans = PT_Sans({
+  weight: ["400", "700"],
   subsets: ["latin"],
+  variable: "--font-pt-sans",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +27,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body className={`${publicSans.variable} ${ptSans.variable}`}>
           {children}
         </body>
       </html>
