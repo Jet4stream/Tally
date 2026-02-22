@@ -50,6 +50,8 @@ export default function RequestReimbursement() {
   const memberships = useTreasurerStore((s) => s.memberships);
   const loadingTreasurer = useTreasurerStore((s) => s.loading);
 
+  const [nextHover, setNextHover] = useState(false);
+
   // step 2/3/5
   const [expenses, setExpenses] = useState(
     Array(5)
@@ -157,6 +159,14 @@ export default function RequestReimbursement() {
   const expenseTotal = expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
 
   const canSubmit = signature.name && signature.date;
+
+  const canProceed =
+  currentStep === 0 ? !!selectedMemberId :
+  currentStep === 1 ? expenses.some((e) => e.description && parseFloat(e.amount) > 0) :
+  currentStep === 2 ? !!uploadedFile :
+  currentStep === 3 ? !!selectedSectionId && !!selectedItemId :
+  true;
+
   const [submitHover, setSubmitHover] = useState(false);
 
   const handleSubmit = async () => {
@@ -452,27 +462,37 @@ export default function RequestReimbursement() {
                           )}
 
                           {currentStep < STEPS.length - 1 ? (
-                            <button style={s.nextBtn} onClick={goNext}>
-                              Next Step
-                            </button>
-                          ) : (
                             <button
                               style={{
                                 ...s.nextBtn,
-                                opacity: canSubmit ? 1 : 0.5,
-                                cursor: canSubmit ? "pointer" : "not-allowed",
-                                background:
-                                  submitHover && canSubmit ? "#fff" : "#3172AE",
-                                color:
-                                  submitHover && canSubmit ? "#3172AE" : "#fff",
+                                opacity: canProceed ? 1 : 0.5,
+                                cursor: canProceed ? "pointer" : "not-allowed",
+                                background: canProceed ? "#3172AE" : "#3172AE",
+                                color: "#fff",
+                                border: "2px solid #3172AE",
                               }}
-                              disabled={!canSubmit || submitting}
-                              onClick={handleSubmit}
-                              onMouseEnter={() => setSubmitHover(true)}
-                              onMouseLeave={() => setSubmitHover(false)}
+                              disabled={!canProceed}
+                              onClick={goNext}
                             >
-                              {submitting ? "Submitting..." : "Submit Reimbursement"}
-                            </button>
+                              Next Step
+</button>
+                          ) : (
+                           <button
+                            style={{
+                              ...s.nextBtn,
+                              opacity: canSubmit ? 1 : 0.5,
+                              cursor: canSubmit ? "pointer" : "not-allowed",
+                              background: submitHover && canSubmit ? "#3172AE" : "#fff",
+                              color: submitHover && canSubmit ? "#fff" : "#3172AE",
+                              border: "2px solid #3172AE",
+                            }}
+                            disabled={!canSubmit || submitting}
+                            onClick={handleSubmit}
+                            onMouseEnter={() => setSubmitHover(true)}
+                            onMouseLeave={() => setSubmitHover(false)}
+                          >
+                            {submitting ? "Submitting..." : "Submit Reimbursement"}
+                          </button>
                           )}
                         </div>
 
