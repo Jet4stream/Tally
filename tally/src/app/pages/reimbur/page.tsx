@@ -247,7 +247,11 @@ export default function RequestReimbursement() {
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
+  // const filledExpenses = expenses.filter((e) => e.description || e.amount);
+  // const expenseTotal = expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
 
+  // const canSubmit = signature.name && signature.date;
+  // // const [submitHover, setSubmitHover] = useState(false);
 
   if (loadingTreasurer) {
     return <div className="p-6 text-gray-500">Loading...</div>;
@@ -878,8 +882,11 @@ const s = {
     WebkitOverflowScrolling: "touch" as const,
   },
   content: {
-  padding: "32px",
-},
+    paddingTop: 24,
+    paddingBottom: 48,
+    paddingLeft: 32,
+    paddingRight: 32,
+  },
   card: {
     background: "transparent",
   },
