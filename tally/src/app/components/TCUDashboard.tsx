@@ -21,15 +21,28 @@ export default function DashboardContent() {
   const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
 
   const { unpaidRows, paidRows } = useMemo(() => {
-    const mapped = reimbursements.map((r) => ({
+  const mapped = reimbursements.map((r) => {
+    let eventName = "";
+    let itemName = "";
+
+    try {
+      const parsed = JSON.parse(r.description ?? "");
+      const parts = (parsed.eventBudgetLine ?? "").split(" — ");
+      eventName = parts[0] ?? "";
+      itemName = parts[1] ?? "";
+    } catch {
+      // not JSON
+    }
+
+    return {
       id: r.id,
       date: new Date(r.submittedAt).toLocaleDateString("en-US"),
       payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
       owed: `$${(r.amountCents / 100).toFixed(2)}`,
-      item: r.description ?? "",
-      event: r.clubName ?? "",
-      status: r.status,
+      item: itemName,
+      event: eventName,
       generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
+      status: r.status,
       amountCents: r.amountCents,
       budgetItemId: r.budgetItemId,
       statusColor:
@@ -38,13 +51,14 @@ export default function DashboardContent() {
           : r.status === "APPROVED"
           ? "text-green-600"
           : "text-gray-600",
-    }));
-
-    return {
-      unpaidRows: mapped.filter((r) => r.status !== "PAID"),
-      paidRows: mapped.filter((r) => r.status === "PAID"),
     };
-  }, [reimbursements]);
+  });
+
+  return {
+    unpaidRows: mapped.filter((r) => r.status !== "PAID"),
+    paidRows: mapped.filter((r) => r.status === "PAID"),
+  };
+}, [reimbursements]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -112,17 +126,12 @@ export default function DashboardContent() {
         >
           Paid
         </button>
-        <button
-          onClick={() => setSubTab("members")}
-          className={`w-[110px] sm:w-[140px] lg:w-[160px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 cursor-pointer ${
-            subTab === "members" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
-          }`}
-        >
-          Club Members
-        </button>
+
       </div>
 
       <div className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)] overflow-y-auto">
+        {loading && <p className="text-gray-400 text-sm">Loading...</p>}
+        {err && <p className="text-red-500 text-sm">{err}</p>}
         {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={true} />}
         {subTab === "paid" && <DataTable data={paidRows} showDelete={false} />}
         {subTab === "members" && <ClubMembers />}

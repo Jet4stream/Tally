@@ -208,7 +208,9 @@ export default function DataTable({
                     if (!confirm("Are you sure you want to delete this reimbursement?")) return;
                     await deleteReimbursement(r.id);
                     window.location.reload();
+                
                   }}
+                  className="cursor-pointer"
                 >
                   <Image src={trashIcon} alt="Delete" width={18} height={18} />
                 </button>
@@ -217,7 +219,7 @@ export default function DataTable({
               <button
                 onClick={() => handleOpenPdf(r)}
                 disabled={!r.generatedFormPdfUrl || loadingPdf}
-                className="disabled:opacity-30"
+                className="disabled:opacity-30 cursor-pointer"
               >
                 <Image src={paperclipIcon} alt="Attachment" width={18} height={18} />
               </button>

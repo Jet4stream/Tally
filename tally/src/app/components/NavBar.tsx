@@ -74,7 +74,7 @@ export default function NavBar({ title }: NavBarProps) {
   }, [treasurerClubId]);
 
   return (
-    <div className="fixed top-0 inset-x-0 h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
+    <div className="h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
       <div className="flex flex-col gap-0 sm:gap-[2px] min-w-0">
         <div className="flex items-center gap-[8px]">
           <Image

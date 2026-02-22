@@ -7,7 +7,6 @@ import pencilIcon from "../assests/pencil.svg";
 export default function TCUBudgetDetailView({ club, onBack }: { club: any, onBack: () => void }) {
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] py-8">
-      {/* 1. Header: Outside the flexbox so it stays full-width */}
       <div className="mb-8">
         <button 
           onClick={onBack} 
@@ -30,11 +29,6 @@ export default function TCUBudgetDetailView({ club, onBack }: { club: any, onBac
         </div>
       </div>
 
-      {/* 2. Content Flexbox: Identical logic to the standard view 
-          - lg:flex-row and flex-col for responsiveness.
-          - items-start for desktop alignment.
-          - items-end for mobile to keep sidebar right-aligned.
-      */}
       <div className="flex flex-col items-end lg:flex-row lg:items-start gap-0">
         
         {/* Left: Main Budget Content */}
