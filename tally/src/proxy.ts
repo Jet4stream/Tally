@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 const isAuthPage = createRouteMatcher([
   "/pages/login(.*)",
   "/pages/tcu-login(.*)",
-  "/pages/signup(.*)",
+  "/pages/signup",
   "/pages/tcu-signup(.*)",
 
   // include if you use Clerk-hosted routes too:

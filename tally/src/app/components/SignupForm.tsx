@@ -27,7 +27,7 @@ export default function SignupForm({
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: "", // 1. Added confirmPassword state
+    confirmPassword: "",
   });
   const [error, setError] = useState("");
 
@@ -41,7 +41,6 @@ export default function SignupForm({
     e.preventDefault();
     if (!isLoaded || !isFormValid) return;
 
-    // 2. Client-side check: Do passwords match?
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -75,7 +74,6 @@ export default function SignupForm({
     }
   };
 
-  // ... handleVerify and Spinner remain the same ...
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
@@ -86,13 +84,14 @@ export default function SignupForm({
         code,
       });
       if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
-
         const redirectPath = isTCU
           ? "/pages/signup/complete?role=TCU"
           : "/pages/signup/complete";
 
-        router.push(redirectPath);
+        await setActive({
+          session: completeSignUp.createdSessionId,
+          beforeEmit: () => router.push(redirectPath),
+        });
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Invalid code.");
@@ -118,7 +117,10 @@ export default function SignupForm({
             <p className="text-gray-500 mb-8">
               Enter the 6-digit code sent to your email.
             </p>
-            <form onSubmit={handleVerify} className="w-full flex flex-col gap-5">
+            <form
+              onSubmit={handleVerify}
+              className="w-full flex flex-col gap-5"
+            >
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <input
                 value={code}
@@ -195,7 +197,6 @@ export default function SignupForm({
                 className="border border-gray-300 rounded-xl p-3"
                 required
               />
-              {/* 3. New Confirm Password input */}
               <input
                 name="confirmPassword"
                 type="password"

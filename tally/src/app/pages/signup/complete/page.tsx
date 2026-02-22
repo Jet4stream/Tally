@@ -1,5 +1,5 @@
-import CompleteAccountForm from "../../../components/SignupForm2";
+import CompleteAccountForm from "@/app/components/SignupForm2";
 
-export default function CompleteAccountPage() {
+export default function CompleteSignupPage() {
   return <CompleteAccountForm />;
 }
