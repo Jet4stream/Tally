@@ -69,7 +69,7 @@ export default function DashboardContent() {
       <div className="flex mb-4 border-b border-gray-200">
         <button
           onClick={() => setSubTab("unpaid")}
-          className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+          className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 cursor-pointer ${
             subTab === "unpaid" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
           }`}
         >
@@ -77,7 +77,7 @@ export default function DashboardContent() {
         </button>
         <button
           onClick={() => setSubTab("paid")}
-          className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+          className={`w-[80px] sm:w-[100px] lg:w-[120px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 cursor-pointer ${
             subTab === "paid" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
           }`}
         >
@@ -85,7 +85,7 @@ export default function DashboardContent() {
         </button>
         <button
           onClick={() => setSubTab("members")}
-          className={`w-[110px] sm:w-[140px] lg:w-[160px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 ${
+          className={`w-[110px] sm:w-[140px] lg:w-[160px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 cursor-pointer ${
             subTab === "members" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
           }`}
         >
