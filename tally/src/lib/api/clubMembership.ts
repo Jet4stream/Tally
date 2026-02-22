@@ -1,5 +1,7 @@
 import axios from "axios";
 import { ClubMembership, MembershipRole } from "@prisma/client";
+import type { ClubMembershipWithUser } from "@/types/clubMembership";
+
 
 type ApiResponse<T> = {
   code: string;
@@ -59,10 +61,19 @@ export const getClubMembershipsByUserId = async (
  */
 export const getClubMembershipsByClubId = async (
   clubId: string
-): Promise<ClubMembership[]> => {
-  const res = await axios.get<ApiResponse<ClubMembership[]>>(
+): Promise<ClubMembershipWithUser[]> => {
+  const res = await axios.get<ApiResponse<ClubMembershipWithUser[]>>(
     `/api/clubMemberships?clubId=${encodeURIComponent(clubId)}`
   );
+  return res.data.data;
+};
+
+/**
+ * GET TREASURER CLUB MEMBERS
+ * GET /api/clubMemberships?userId=
+ */
+export const getTreasurerClubMembers = async (userId: string) => {
+  const res = await axios.get(`/api/clubMemberships?treasurerUserId=${encodeURIComponent(userId)}`);
   return res.data.data;
 };
 

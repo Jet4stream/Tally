@@ -7,6 +7,7 @@ import {
   getClubMembershipsByClubIdController,
   updateClubMembershipController,
   deleteClubMembershipController,
+  getTreasurerClubMembersController,
 } from "./controller";
 
 /**
@@ -45,6 +46,8 @@ export async function GET(req: Request) {
     const userId = searchParams.get("userId");
     const clubId = searchParams.get("clubId");
 
+    const treasurerUserId = searchParams.get("treasurerUserId");
+
     if (id) {
       const membership = await getOneClubMembershipController(id);
       if (!membership) {
@@ -55,6 +58,20 @@ export async function GET(req: Request) {
       }
       return NextResponse.json({ code: "SUCCESS", data: membership });
     }
+
+    if (treasurerUserId) {
+      const data = await getTreasurerClubMembersController(treasurerUserId);
+
+      if (!data) {
+        return NextResponse.json(
+          { code: "FORBIDDEN", message: "User is not a treasurer of any club" },
+          { status: 403 }
+        );
+      }
+
+      return NextResponse.json({ code: "SUCCESS", data });
+    }
+
 
     if (userId) {
       const memberships = await getClubMembershipsByUserIdController(userId);
@@ -121,3 +138,4 @@ export async function DELETE(req: Request) {
     );
   }
 }
+
