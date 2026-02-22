@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import ReimbursementTable from "./ReimbursementTable";
+import BudgetSheet from "./TreasurerBudgetSheet";
 
 export default function TabSpacer() {
   const [activeTab, setActiveTab] = useState("reimbursements");
@@ -39,7 +40,11 @@ export default function TabSpacer() {
         )}
 
       
-      {activeTab === "budget" && <div className="p-8">Budget Sheet content</div>}
+      {activeTab === "budget" && (
+        <div className="h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)] lg:h-[calc(100vh-200px)] overflow-y-auto">
+          <BudgetSheet />
+        </div>
+      )}
     </div>
   );
 }
