@@ -41,7 +41,7 @@ export default function MemberTopBar() {
   }, []);
 
   return (
-    <div className="h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
+    <div className="h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px] overflow-visible">
       <div className="flex flex-col gap-0 sm:gap-[2px] min-w-0">
         <div className="flex items-center gap-[8px]">
           <Image
@@ -83,12 +83,12 @@ export default function MemberTopBar() {
 
         {open && (
           <div
-            className="absolute right-0 mt-3 w-48 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+            className="fixed top-[48px] sm:top-[64px] lg:top-[84px] right-4 sm:right-6 lg:right-[32px] w-48 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden z-50"
             role="menu"
           >
             <button
               onClick={handleEditProfile}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-black hover:bg-gray-50"
               role="menuitem"
             >
               Edit Profile
@@ -98,7 +98,7 @@ export default function MemberTopBar() {
 
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-red-600 hover:bg-red-50"
               role="menuitem"
             >
               Logout
