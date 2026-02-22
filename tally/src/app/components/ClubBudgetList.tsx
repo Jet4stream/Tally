@@ -5,7 +5,11 @@ import Image from "next/image";
 import { getAllClubs } from "@/lib/api/club";
 import { Club } from "@prisma/client";
 
-export default function ClubBudgetList() {
+export default function ClubBudgetList({
+  onSelect,
+}: {
+  onSelect: (club: Club) => void;
+}) {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -25,10 +29,13 @@ export default function ClubBudgetList() {
   }, []);
 
   const filteredClubs = clubs.filter((club) =>
-    club.name.toLowerCase().includes(searchTerm.toLowerCase())
+    club.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  if (loading) return <div className="p-10 text-center text-gray-400">Loading budgets...</div>;
+  if (loading)
+    return (
+      <div className="p-10 text-center text-gray-400">Loading budgets...</div>
+    );
 
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] py-10 font-[family-name:var(--font-pt-sans)]">
@@ -45,13 +52,19 @@ export default function ClubBudgetList() {
         {filteredClubs.map((club) => (
           <button
             key={club.id}
+            onClick={() => onSelect(club)}
             className="flex items-center p-6 bg-white border border-gray-100 rounded-[1.5rem] hover:border-[#3172AE] hover:shadow-sm transition-all group"
           >
             <div className="flex items-center gap-6">
               <div className="relative w-10 h-10 flex-shrink-0">
-                <Image src="/file.svg" alt="File" fill className="object-contain" />
+                <Image
+                  src="/file.svg"
+                  alt="File"
+                  fill
+                  className="object-contain"
+                />
               </div>
-              
+
               <div className="text-left">
                 <span className="block font-extrabold text-[#1a1a1a] text-xl leading-tight">
                   {club.name}
