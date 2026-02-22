@@ -138,7 +138,7 @@ export default function NavBar({ title }: NavBarProps) {
               className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-red-600 hover:bg-red-50"
               role="menuitem"
             >
-              Logout
+              Log Out
             </button>
           </div>
         )}
