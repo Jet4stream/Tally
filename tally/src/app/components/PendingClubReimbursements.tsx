@@ -6,9 +6,8 @@ import { useUser } from "@clerk/nextjs";
 
 import paperclipIcon from "../assests/paperclip.svg";
 
-import { getReimbursementsByClubId } from "@/lib/api/reimbursement";
+import { getReimbursementsByClubId, updateReimbursement } from "@/lib/api/reimbursement";
 import { getUserById } from "@/lib/api/user";
-import { updateReimbursement } from "@/lib/api/reimbursement";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
 
 import { ReimbursementStatus } from "@prisma/client";
@@ -16,6 +15,7 @@ import { ReimbursementStatus } from "@prisma/client";
 export default function PendingClubReimbursements({ clubId }: { clubId: string }) {
   const { user, isLoaded } = useUser();
 
+  // show both SUBMITTED + APPROVED (because Approved becomes Paid)
   const [pending, setPending] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(true);
 
@@ -24,7 +24,18 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
 
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
-  const [approving, setApproving] = useState(false);
+
+  const [acting, setActing] = useState<"APPROVE" | "PAID" | null>(null);
+
+  const refreshList = async () => {
+    const all = await getReimbursementsByClubId(clubId);
+    const visible = (all ?? []).filter(
+      (r) =>
+        r.status === ReimbursementStatus.SUBMITTED ||
+        r.status === ReimbursementStatus.APPROVED
+    );
+    setPending(visible);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -32,10 +43,12 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     (async () => {
       try {
         const all = await getReimbursementsByClubId(clubId);
-        const submitted = (all ?? []).filter(
-          (r) => r.status === ReimbursementStatus.SUBMITTED
+        const visible = (all ?? []).filter(
+          (r) =>
+            r.status === ReimbursementStatus.SUBMITTED ||
+            r.status === ReimbursementStatus.APPROVED
         );
-        if (!cancelled) setPending(submitted);
+        if (!cancelled) setPending(visible);
       } catch (e) {
         console.error("Failed to load reimbursements:", e);
       }
@@ -97,6 +110,39 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const onApprove = async () => {
     if (!activeReimbursement || !isTCU) return;
 
+    // safety: only allow SUBMITTED -> APPROVED
+    if (activeReimbursement.status !== ReimbursementStatus.SUBMITTED) return;
+
+    setActing("APPROVE");
+    try {
+      await updateReimbursement(activeReimbursement.id, {
+        status: ReimbursementStatus.APPROVED,
+        reviewedAt: new Date(),
+      });
+
+      // Update active reimbursement locally so button changes immediately
+      setActiveReimbursement((prev: any) =>
+        prev ? { ...prev, status: ReimbursementStatus.APPROVED, reviewedAt: new Date() } : prev
+      );
+
+      // Refresh side list (now includes APPROVED)
+      await refreshList();
+    } catch (e) {
+      console.error("Approve failed:", e);
+      alert("Approve failed.");
+    } finally {
+      setActing(null);
+    }
+  };
+
+  // 1) increment spentCents
+  // 2) set reimbursement status -> PAID
+  const onPaid = async () => {
+    if (!activeReimbursement || !isTCU) return;
+
+    // safety: only allow APPROVED -> PAID
+    if (activeReimbursement.status !== ReimbursementStatus.APPROVED) return;
+
     const { id, budgetItemId, amountCents } = activeReimbursement;
 
     if (!budgetItemId) {
@@ -104,7 +150,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
       return;
     }
 
-    setApproving(true);
+    setActing("PAID");
     try {
       const item = await getBudgetItemById(budgetItemId);
       const newSpent = (item.spentCents ?? 0) + amountCents;
@@ -112,28 +158,28 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
       await updateBudgetItem(budgetItemId, { spentCents: newSpent });
 
       await updateReimbursement(id, {
-        status: ReimbursementStatus.APPROVED,
-        reviewedAt: new Date(),
+        status: ReimbursementStatus.PAID,
+        paidAt: new Date(),
       });
 
       closeModal();
 
-      // refresh list
-      const all = await getReimbursementsByClubId(clubId);
-      const submitted = (all ?? []).filter(
-        (r) => r.status === ReimbursementStatus.SUBMITTED
-      );
-      setPending(submitted);
+      // After paid, remove from list (we only show SUBMITTED/APPROVED)
+      await refreshList();
     } catch (e) {
-      console.error("Approve failed:", e);
-      alert("Approve failed.");
+      console.error("Paid failed:", e);
+      alert("Paid failed.");
     } finally {
-      setApproving(false);
+      setActing(null);
     }
   };
 
   return (
-    <div className={`transition-all duration-300 shrink-0 ${isOpen ? "w-96 ml-6" : "w-auto ml-4"}`}>
+    <div
+      className={`transition-all duration-300 shrink-0 ${
+        isOpen ? "w-96 ml-6" : "w-auto ml-4"
+      }`}
+    >
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
@@ -201,7 +247,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
         </div>
       )}
 
-      {/* PDF Modal (same as DataTable logic) */}
+      {/* PDF Modal */}
       {pdfUrl && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -221,13 +267,38 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
 
               {!loadingRole && isTCU && (
                 <div className="w-[260px] border-l p-4 flex flex-col gap-3">
-                  <button
-                    onClick={onApprove}
-                    disabled={approving}
-                    className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold"
-                  >
-                    {approving ? "Approving..." : "Approve"}
-                  </button>
+                  {/* If SUBMITTED -> show Approve */}
+                  {activeReimbursement?.status === ReimbursementStatus.SUBMITTED && (
+                    <button
+                      onClick={onApprove}
+                      disabled={acting !== null}
+                      className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold disabled:opacity-60"
+                    >
+                      {acting === "APPROVE" ? "Approving..." : "Approve"}
+                    </button>
+                  )}
+
+                  {/* If APPROVED -> show Paid */}
+                  {activeReimbursement?.status === ReimbursementStatus.APPROVED && (
+                    <button
+                      onClick={onPaid}
+                      disabled={acting !== null}
+                      className="w-full py-3 rounded-xl bg-[#3172AE] text-white font-semibold disabled:opacity-60"
+                    >
+                      {acting === "PAID" ? "Marking Paid..." : "Paid"}
+                    </button>
+                  )}
+
+                  {/* If neither, show disabled status */}
+                  {activeReimbursement?.status !== ReimbursementStatus.SUBMITTED &&
+                    activeReimbursement?.status !== ReimbursementStatus.APPROVED && (
+                      <button
+                        disabled
+                        className="w-full py-3 rounded-xl bg-gray-200 text-gray-600 font-semibold cursor-not-allowed"
+                      >
+                        {String(activeReimbursement?.status ?? "—")}
+                      </button>
+                    )}
 
                   <button
                     onClick={() =>

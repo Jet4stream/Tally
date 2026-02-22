@@ -10,7 +10,6 @@ import paperclipIcon from "../assests/paperclip.svg";
 import { deleteReimbursement, updateReimbursement } from "@/lib/api/reimbursement";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
 import { getUserById } from "@/lib/api/user"; // must return role
-import { ReimbursementStatus } from "@prisma/client";
 
 type ReimbursementRow = {
   id: string;
@@ -19,8 +18,12 @@ type ReimbursementRow = {
   owed: string;
   item: string;
   event: string;
-  status: string;
+
+  // IMPORTANT: your UI has these as strings already
+  // (and you also use statusColor which is UI-only)
+  status: string; // "SUBMITTED" | "APPROVED" | "PAID" | ...
   statusColor: string;
+
   generatedFormPdfUrl: string | null;
 
   amountCents: number;
@@ -43,7 +46,8 @@ export default function DataTable({
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
 
-  const [approving, setApproving] = useState(false);
+  // one spinner for either action
+  const [acting, setActing] = useState<"APPROVE" | "PAID" | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -96,10 +100,31 @@ export default function DataTable({
   };
 
   const onApprove = async () => {
-    if (!activeReimbursement) return;
+    if (!activeReimbursement || !isTCU) return;
+    if (activeReimbursement.status !== "SUBMITTED") return;
 
-    // client-side guard (still recommend server-side auth on PUT endpoints)
-    if (!isTCU) return;
+    setActing("APPROVE");
+    try {
+      await updateReimbursement(activeReimbursement.id, {
+        status: "APPROVED",
+        reviewedAt: new Date(),
+      });
+
+      // update modal state so button flips immediately
+      setActiveReimbursement((prev) =>
+        prev ? { ...prev, status: "APPROVED" } : prev
+      );
+    } catch (e) {
+      console.error("Approve failed:", e);
+      alert("Approve failed.");
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const onPaid = async () => {
+    if (!activeReimbursement || !isTCU) return;
+    if (activeReimbursement.status !== "APPROVED") return;
 
     const { id: reimbursementId, budgetItemId, amountCents } = activeReimbursement;
 
@@ -108,7 +133,7 @@ export default function DataTable({
       return;
     }
 
-    setApproving(true);
+    setActing("PAID");
     try {
       // 1) load current budget item
       const item = await getBudgetItemById(budgetItemId);
@@ -117,31 +142,39 @@ export default function DataTable({
       const newSpent = (item.spentCents ?? 0) + amountCents;
       await updateBudgetItem(budgetItemId, { spentCents: newSpent });
 
-      // 3) mark reimbursement approved
+      // 3) mark reimbursement paid
       await updateReimbursement(reimbursementId, {
-        status: ReimbursementStatus.APPROVED,
-        reviewedAt: new Date(),
+        status: "PAID",
+        paidAt: new Date(),
       });
 
-      console.log("APPROVED reimbursement", { reimbursementId, budgetItemId, amountCents, newSpent });
+      // update modal state (optional since we close)
+      setActiveReimbursement((prev) =>
+        prev ? { ...prev, status: "PAID" } : prev
+      );
 
       closeModal();
-      window.location.reload(); // quick refresh
+      window.location.reload(); // keep your quick refresh behavior
     } catch (e) {
-      console.error("Approve failed:", e);
-      alert("Approve failed. (Budget + reimbursement may be out of sync if one update succeeded.)");
+      console.error("Paid failed:", e);
+      alert("Paid failed. (Budget + reimbursement may be out of sync if one update succeeded.)");
     } finally {
-      setApproving(false);
+      setActing(null);
     }
   };
 
   const onReject = async () => {
-    if (!activeReimbursement) return;
-    if (!isTCU) return;
-
-    // For now: just console.log (or you can also update status using updateReimbursement)
+    if (!activeReimbursement || !isTCU) return;
     console.log("REJECT clicked", { reimbursementId: activeReimbursement.id });
   };
+
+  // Helper for what button should show in the modal
+  const actionKind: "APPROVE" | "PAID" | null =
+    activeReimbursement?.status === "SUBMITTED"
+      ? "APPROVE"
+      : activeReimbursement?.status === "APPROVED"
+      ? "PAID"
+      : null;
 
   return (
     <div>
@@ -167,6 +200,7 @@ export default function DataTable({
             <span className="w-[22%]">{r.item}</span>
             <span className="w-[18%]">{r.event}</span>
             <span className={`w-[18%] ${r.statusColor}`}>{r.status}</span>
+
             <span className="w-[6%] flex gap-4 justify-end">
               {showDelete && (
                 <button
@@ -194,14 +228,20 @@ export default function DataTable({
 
       {/* PDF Modal */}
       {pdfUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={closeModal}
+        >
           <div
             className="bg-white rounded-xl w-[95%] max-w-[1100px] h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
               <span className="font-semibold text-lg">Reimbursement Form</span>
-              <button onClick={closeModal} className="text-xl font-bold text-black hover:text-gray-500">
+              <button
+                onClick={closeModal}
+                className="text-xl font-bold text-black hover:text-gray-500"
+              >
                 ✕
               </button>
             </div>
@@ -218,16 +258,42 @@ export default function DataTable({
                     <div className="text-xs text-gray-500">
                       {activeReimbursement ? `Reimbursement: ${activeReimbursement.id}` : ""}
                     </div>
+                    <div className="text-xs text-gray-500">
+                      Status: {activeReimbursement?.status ?? "—"}
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={onApprove}
-                    disabled={approving}
-                    className="w-full rounded-xl py-3 font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {approving ? "Approving..." : "Approve"}
-                  </button>
+                  {actionKind === "APPROVE" && (
+                    <button
+                      type="button"
+                      onClick={onApprove}
+                      disabled={acting !== null}
+                      className="w-full rounded-xl py-3 font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {acting === "APPROVE" ? "Approving..." : "Approve"}
+                    </button>
+                  )}
+
+                  {actionKind === "PAID" && (
+                    <button
+                      type="button"
+                      onClick={onPaid}
+                      disabled={acting !== null}
+                      className="w-full rounded-xl py-3 font-semibold text-white bg-[#3172AE] hover:bg-[#2860a0] disabled:opacity-50"
+                    >
+                      {acting === "PAID" ? "Marking Paid..." : "Paid"}
+                    </button>
+                  )}
+
+                  {actionKind === null && (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full rounded-xl py-3 font-semibold bg-gray-100 text-gray-500 cursor-not-allowed"
+                    >
+                      {activeReimbursement?.status ?? "—"}
+                    </button>
+                  )}
 
                   <button
                     type="button"
