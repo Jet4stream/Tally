@@ -1,6 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { MembershipRole } from "@prisma/client";
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 export const createClubInviteSchema = z.object({
   clubId: z.string().trim().min(1),
@@ -22,7 +31,7 @@ export async function postClubInviteController(input: CreateClubInviteInput) {
     userEmail: input.userEmail.toLowerCase(),
   });
 
-  return prisma.clubInvite.create({
+  const invite = await prisma.clubInvite.create({
     data: {
       clubId: data.clubId,
       userEmail: data.userEmail,
@@ -30,6 +39,23 @@ export async function postClubInviteController(input: CreateClubInviteInput) {
       expiresAt: data.expiresAt,
     },
   });
+
+  // Send invite email
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: data.userEmail,
+    subject: "You've been invited to join TCU Senate Tally!",
+    html: `
+      <h2>You've been invited to Tally!</h2>
+      <p>A club treasurer has invited you to join their club on Tally.</p>
+      <p>Create your account to get started:</p>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/pages/signup" style="display:inline-block;padding:12px 24px;background:#3172AE;color:white;border-radius:8px;text-decoration:none;font-family:sans-serif;">
+        Create Account
+      </a>
+    `,
+  });
+
+  return invite;
 }
 
 export async function getAllClubInvitesController() {

@@ -15,7 +15,7 @@ export default function NavBar() {
 
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-[16px]">
           <p className="text-xl sm:text-3xl lg:text-[40px] font-[family-name:var(--font-public-sans)] font-bold leading-[120%] text-white truncate">
-            Vietnamese Student Association
+            Tracey Tawiah's Bomb Unit Student Association of Tufts
           </p>
           <p className="text-xs sm:text-sm lg:text-[16px] font-[family-name:var(--font-public-sans)] text-white self-end mb-[2px] sm:mb-[4px] whitespace-nowrap">
             Dept ID: A901146
