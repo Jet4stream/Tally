@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import {
   postClubMembershipController,
   getAllClubMembershipsController,
@@ -23,6 +24,13 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error: any) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { code: "DUPLICATE_MEMBERSHIP", message: "Membership already exists", data: null },
+        { status: 409 }
+      );
+    }
+
     console.error("POST /api/club-memberships error:", error);
     return NextResponse.json(
       { code: "ERROR", message: error?.message ?? "Failed to create membership" },

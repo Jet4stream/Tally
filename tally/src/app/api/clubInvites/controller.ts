@@ -92,3 +92,17 @@ export async function updateClubInviteController(id: string, input: UpdateClubIn
 export async function deleteClubInviteController(id: string) {
   return prisma.clubInvite.delete({ where: { id } });
 }
+
+export async function deleteClubInvitesByEmailAndClubIdController(
+  userEmail: string,
+  clubId: string
+) {
+  const result = await prisma.clubInvite.deleteMany({
+    where: {
+      userEmail: userEmail.trim().toLowerCase(),
+      clubId,
+    },
+  });
+
+  return { deletedCount: result.count };
+}

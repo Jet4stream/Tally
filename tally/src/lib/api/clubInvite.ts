@@ -59,3 +59,11 @@ export const deleteClubInvite = async (id: string): Promise<void> => {
     `/api/clubInvites?id=${encodeURIComponent(id)}`
   );
 };
+
+export const deleteClubInvitesByEmailAndClubId = async (email: string, clubId: string) => {
+  const res = await axios.delete<ApiResponse<{ deletedCount: number }>>(
+    `/api/clubInvites`,
+    { params: { email, clubId } }
+  );
+  return res.data.data;
+};

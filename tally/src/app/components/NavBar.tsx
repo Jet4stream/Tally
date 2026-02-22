@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+
 import tallyLogo from "../assests/Tally.svg";
 import userIcon from "../assests/userIcon.svg";
 import { useTreasurerStore } from "@/store/treasurerStore";
@@ -17,6 +20,37 @@ export default function NavBar({ title }: NavBarProps) {
   const [clubName, setClubName] = useState<string>("");
   const [loadingClub, setLoadingClub] = useState(false);
 
+  // dropdown state
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const router = useRouter();
+  const { signOut } = useClerk();
+
+  const handleLogout = async () => {
+    setOpen(false);
+    await signOut();
+    router.push("/pages/login");
+  };
+
+  const handleEditProfile = () => {
+    setOpen(false);
+    router.push("/pages/edit-profile"); // change to your actual route
+  };
+
+  // close dropdown on outside click
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+
   useEffect(() => {
     if (!treasurerClubId) {
       setClubName("");
@@ -29,7 +63,7 @@ export default function NavBar({ title }: NavBarProps) {
         setLoadingClub(true);
         const club = await getClubById(treasurerClubId);
         if (!cancelled) setClubName(club.name);
-      } catch (e) {
+      } catch {
         if (!cancelled) setClubName("");
       } finally {
         if (!cancelled) setLoadingClub(false);
@@ -66,13 +100,49 @@ export default function NavBar({ title }: NavBarProps) {
         </div>
       </div>
 
-      <Image
-        src={userIcon}
-        alt="User icon"
-        width={49}
-        height={49}
-        className="w-8 sm:w-10 lg:w-[49px] h-auto ml-4 shrink-0"
-      />
+      {/* User icon + dropdown */}
+      <div className="relative ml-4 shrink-0" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-full focus:outline-none focus:ring-2 focus:ring-white/60"
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <Image
+            src={userIcon}
+            alt="User menu"
+            width={49}
+            height={49}
+            className="w-8 sm:w-10 lg:w-[49px] h-auto"
+          />
+        </button>
+
+        {open && (
+          <div
+            className="absolute right-0 mt-3 w-48 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+            role="menu"
+          >
+            <button
+              onClick={handleEditProfile}
+              className="w-full text-left px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+              role="menuitem"
+            >
+              Edit Profile
+            </button>
+
+            <div className="h-px bg-gray-100" />
+
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              role="menuitem"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
