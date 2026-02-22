@@ -159,7 +159,7 @@ export default function DataTable({
         {data.map((r) => (
           <div
             key={r.id}
-            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)]"
+            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)] "
           >
             <span className="w-[12%]">{r.date}</span>
             <span className="w-[14%]">{r.payTo}</span>
@@ -170,6 +170,7 @@ export default function DataTable({
             <span className="w-[6%] flex gap-4 justify-end">
               {showDelete && (
                 <button
+                  className="cursor-pointer"
                   onClick={async () => {
                     if (!confirm("Are you sure you want to delete this reimbursement?")) return;
                     await deleteReimbursement(r.id);
@@ -181,9 +182,10 @@ export default function DataTable({
               )}
 
               <button
+                className="cursor-pointer disabled:opacity-30"
                 onClick={() => handleOpenPdf(r)}
                 disabled={!r.generatedFormPdfUrl || loadingPdf}
-                className="disabled:opacity-30"
+                
               >
                 <Image src={paperclipIcon} alt="Attachment" width={18} height={18} />
               </button>
