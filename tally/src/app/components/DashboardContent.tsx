@@ -14,27 +14,29 @@ export default function DashboardContent() {
   const { user, isLoaded } = useUser();
   const userId = user?.id;
 
-  const { unpaidRows, paidRows } = useMemo(() => {
-    const mapped = reimbursements.map((r) => ({
-      date: new Date(r.submittedAt).toLocaleDateString("en-US"),
-      payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
-      owed: `$${(r.amountCents / 100).toFixed(2)}`,
-      item: r.description ?? "",
-      event: r.clubName ?? "",
-      status: r.status,
-      statusColor:
-        r.status === "REJECTED"
-          ? "text-red-500"
-          : r.status === "APPROVED"
-          ? "text-green-600"
-          : "text-gray-600",
-    }));
+const { unpaidRows, paidRows } = useMemo(() => {
+  const mapped = reimbursements.map((r) => ({
+    id: r.id,
+    date: new Date(r.submittedAt).toLocaleDateString("en-US"),
+    payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
+    owed: `$${(r.amountCents / 100).toFixed(2)}`,
+    item: r.description ?? "",
+    event: r.clubName ?? "",
+    status: r.status,
+    generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
+    statusColor:
+      r.status === "REJECTED"
+        ? "text-red-500"
+        : r.status === "APPROVED"
+        ? "text-green-600"
+        : "text-gray-600",
+  }));
 
-    return {
-      unpaidRows: mapped.filter((r) => r.status !== "PAID"),
-      paidRows: mapped.filter((r) => r.status === "PAID"),
-    };
-  }, [reimbursements]);
+  return {
+    unpaidRows: mapped.filter((r) => r.status !== "PAID"),
+    paidRows: mapped.filter((r) => r.status === "PAID"),
+  };
+}, [reimbursements]);
 
   useEffect(() => {
     if (!isLoaded) return;
