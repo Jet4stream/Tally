@@ -21,11 +21,6 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
   });
   const [error, setError] = useState("");
 
-  /**
-   * REMOVED: The useEffect that was forcing setVerifying(true).
-   * This was likely the reason the screen was switching even when an error occurred.
-   */
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -36,13 +31,9 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
     e.preventDefault();
     if (!isLoaded || !isFormValid) return;
     setLoading(true);
-    setError(""); // Clear error at start of attempt
+    setError("");
 
     try {
-      /**
-       * 1. Create the signup attempt. 
-       * This is where Clerk checks for existing emails and breached passwords.
-       */
       await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
@@ -50,13 +41,8 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
         lastName: formData.lastName,
       });
 
-      /**
-       * 2. Prepare verification.
-       * If step 1 fails, the code will jump to the catch block and never reach here.
-       */
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       
-      // 3. ONLY switch the UI if both above steps were successful
       setVerifying(true);
       
     } catch (err: any) {
@@ -67,11 +53,9 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
       } else if (clerkError?.code === "session_exists") {
         router.push("/pages/signup/complete");
       } else {
-        // This catches the "password breach" error message directly from Clerk
         setError(clerkError?.message || "Something went wrong.");
       }
       
-      // Explicitly ensure we stay on the signup screen
       setVerifying(false);
     } finally {
       setLoading(false);
@@ -147,7 +131,6 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
             </div>
 
             <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-              {/* Error display is now inside the form for better visibility */}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm text-left">
                   {error}
