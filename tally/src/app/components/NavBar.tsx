@@ -101,7 +101,7 @@ export default function NavBar() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full focus:outline-none focus:ring-2 focus:ring-white/60"
+          className="rounded-full focus:outline-none focus:ring-2 focus:ring-white/60 cursor-pointer"
           aria-haspopup="menu"
           aria-expanded={open}
         >
@@ -121,7 +121,7 @@ export default function NavBar() {
           >
             <button
               onClick={handleEditProfile}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-black hover:bg-gray-50"
               role="menuitem"
             >
               Edit Profile
@@ -131,7 +131,7 @@ export default function NavBar() {
 
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)]text-red-600 hover:bg-red-50"
               role="menuitem"
             >
               Logout
