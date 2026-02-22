@@ -26,7 +26,6 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const [loadingRole, setLoadingRole] = useState(true);
   const [approving, setApproving] = useState(false);
 
-  // ✅ Load reimbursements via helper + filter SUBMITTED
   useEffect(() => {
     let cancelled = false;
 
@@ -47,7 +46,6 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     };
   }, [clubId]);
 
-  // ✅ Check if user is TCU
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -74,7 +72,6 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     };
   }, [isLoaded, user?.id]);
 
-  // ✅ Open PDF (same pattern as DataTable)
   const handleOpenPdf = async (r: any) => {
     if (!r.generatedFormPdfUrl) return;
 
@@ -97,7 +94,6 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     setActiveReimbursement(null);
   };
 
-  // ✅ Approve using existing update functions
   const onApprove = async () => {
     if (!activeReimbursement || !isTCU) return;
 
