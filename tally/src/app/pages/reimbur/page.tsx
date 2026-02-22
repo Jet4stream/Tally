@@ -158,6 +158,8 @@ export default function RequestReimbursement() {
     };
   }, [selectedSectionId, budgetItemsBySection]);
 
+  
+
   // ---------- handlers ----------
   const handleExpenseChange = (i: number, field: "description" | "amount", value: string) => {
     setExpenses((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
@@ -284,8 +286,8 @@ export default function RequestReimbursement() {
                     {i === 3 && selectedSection && selectedItem && (
                       <p style={s.summaryBlue}>
                         {/* adjust these display fields if your schema differs */}
-                        {(selectedSection as any).title ?? (selectedSection as any).name ?? "Section"} —{" "}
-                        {(selectedItem as any).label ?? (selectedItem as any).name ?? "Line"}
+                        {(selectedSection.title)} —{" "}
+                        {(selectedItem.label)}
                       </p>
                     )}
                   </div>
@@ -378,6 +380,11 @@ function StepChooseMember({
 }) {
   const [search, setSearch] = useState("");
 
+  const selectedUser = useMemo(() => {
+    if (!selectedMemberId) return null;
+    return members.find((u) => u.id === selectedMemberId) ?? null;
+  }, [selectedMemberId, members]);
+
   const filtered = search.trim()
     ? members.filter((u) =>
         `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
@@ -397,16 +404,19 @@ function StepChooseMember({
         />
       </div>
 
-      {selectedMemberId && !search && (
+      {/* ✅ show selected person's name */}
+      {selectedUser && !search && (
         <p style={{ color: "#3172AE", fontWeight: 600, fontSize: 13, margin: "4px 0 0" }}>
-          Selected
+          {selectedUser.firstName} {selectedUser.lastName}
         </p>
       )}
 
       {search.trim() && (
         <div style={{ marginTop: 4, border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
           {filtered.length === 0 ? (
-            <p style={{ color: "#9ca3af", fontSize: 13, padding: "8px 12px", margin: 0 }}>No members found.</p>
+            <p style={{ color: "#9ca3af", fontSize: 13, padding: "8px 12px", margin: 0 }}>
+              No members found.
+            </p>
           ) : (
             filtered.map((u) => {
               const name = `${u.firstName} ${u.lastName}`;
@@ -443,7 +453,6 @@ function StepChooseMember({
     </div>
   );
 }
-
 // ----- Step 2: expenses -----
 function StepInputExpenses({
   expenses,
@@ -500,10 +509,38 @@ function StepInputExpenses({
         );
       })}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-        <div style={{ ...s.input, width: 90, background: "#f9fafb", color: "#6b7280", textAlign: "right" }}>
-          {total > 0 ? `$${total.toFixed(2)}` : "TOTAL"}
-        </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "baseline",
+          gap: 12,
+          marginTop: 16,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontFamily: "var(--font-pt-sans)",
+            letterSpacing: "0.15em",
+            color: "#111",
+            fontWeight: 500,
+          }}
+        >
+          TOTAL:
+        </span>
+
+        <span
+          style={{
+            fontSize: 20,
+            fontFamily: "var(--font-public-sans)",
+            fontWeight: 700,
+            color: "#111",
+            lineHeight: 1,
+          }}
+        >
+          ${total.toFixed(2)}
+        </span>
       </div>
     </div>
   );
