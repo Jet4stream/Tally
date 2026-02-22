@@ -21,37 +21,37 @@ export default function DashboardContent() {
   const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
 
   const { unpaidRows, paidRows } = useMemo(() => {
-  const mapped = reimbursements.map((r) => {
-    let eventName = "";
-    let itemName = "";
+    const mapped = reimbursements.map((r) => {
+  let eventName = "";
+  let itemName = "";
 
-    try {
-      const parsed = JSON.parse(r.description ?? "");
-      const parts = (parsed.eventBudgetLine ?? "").split(" — ");
-      eventName = parts[0] ?? "";
-      itemName = parts[1] ?? "";
-    } catch {
-      // not JSON
-    }
+  try {
+    const parsed = JSON.parse(r.description ?? "");
+    const parts = (parsed.eventBudgetLine ?? "").split(" — ");
+    eventName = parts[0] ?? "";
+    itemName = parts[1] ?? "";
+  } catch {
+    // not JSON
+  }
 
-    return {
-      id: r.id,
-      date: new Date(r.submittedAt).toLocaleDateString("en-US"),
-      payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
-      owed: `$${(r.amountCents / 100).toFixed(2)}`,
-      item: itemName,
-      event: eventName,
-      generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
-      status: r.status,
-      amountCents: r.amountCents,
-      budgetItemId: r.budgetItemId,
+  return {
+    id: r.id,
+    date: new Date(r.submittedAt).toLocaleDateString("en-US"),
+    payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
+    owed: `$${(r.amountCents / 100).toFixed(2)}`,
+    item: itemName,
+    event: eventName,
+    status: r.status,
+    generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
+    amountCents: r.amountCents,
+    budgetItemId: r.budgetItemId,
       statusColor:
         r.status === "REJECTED"
           ? "text-red-500"
           : r.status === "APPROVED"
           ? "text-green-600"
           : "text-gray-600",
-    };
+  };
   });
 
   return {
