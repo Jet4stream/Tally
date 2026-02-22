@@ -99,7 +99,7 @@ export async function getReimbursementsByClubIdController(clubId: string) {
     where: { clubId },
     include: {
         payee: true,
-        budgetItemId: {
+        budgetItem: {
         include: {
           section: true, // <-- or `budgetSection` depending on your schema
         },

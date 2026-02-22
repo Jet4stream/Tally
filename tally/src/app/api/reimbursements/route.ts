@@ -30,6 +30,11 @@ export async function POST(req: Request) {
     const amountCents = Number(form.get("amountCents") ?? 0);
     const description = String(form.get("description") ?? "");
 
+
+    //this code ulls the uploaded PDF out of the incoming FormData using 
+    // the same "generatedPdf" key that we appended it with in the frontend, 
+    // and prepares it for upload to supabase
+    const generatedPdf = form.get("generatedPdf") as File | null;
     const receipt = form.get("receipt") as File | null;
 
     if (!clubId || !clubName || !payeeUserId || !Number.isFinite(amountCents)) {
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
 
     if (receipt) {
       const ext = receipt.name.split(".").pop()?.toLowerCase() || "bin";
-      const path = `${clubId}/${crypto.randomUUID()}/receipt.${ext}`;
+      const path = `receipt/${clubId}/${crypto.randomUUID()}/receipt.${ext}`;
 
       const bytes = new Uint8Array(await receipt.arrayBuffer());
 
@@ -66,6 +71,31 @@ export async function POST(req: Request) {
       receiptFileUrl = `supabase://${SUPABASE_BUCKET}/${path}`;
     }
 
+    let generatedFormPdfUrl: string | null = null;
+
+  //uploads generated pdf to supabase!
+  if (generatedPdf) {
+    const path = `generatedPdf/${clubId}/${crypto.randomUUID()}/reimbursement-form.pdf`;
+
+    const bytes = new Uint8Array(await generatedPdf.arrayBuffer());
+
+    const { error: uploadErr } = await supabaseAdmin.storage
+      .from(SUPABASE_BUCKET)
+      .upload(path, bytes, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadErr) {
+      return NextResponse.json(
+        { code: "ERROR", message: `PDF upload failed: ${uploadErr.message}`, data: null },
+        { status: 500 }
+      );
+    }
+
+    generatedFormPdfUrl = `supabase://${SUPABASE_BUCKET}/${path}`;
+  }
+
     // Call controller to create reimbursement
     const r = await postReimbursementController({
       clubId,
@@ -75,8 +105,11 @@ export async function POST(req: Request) {
       budgetItemId,
       amountCents,
       description,
-      receiptFileUrl,        
+      receiptFileUrl,    
+      generatedFormPdfUrl,    
     });
+
+    
 
     return NextResponse.json(
       { code: "SUCCESS", message: "Reimbursement created", data: r },
