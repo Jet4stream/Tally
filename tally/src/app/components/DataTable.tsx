@@ -6,10 +6,14 @@ import { useUser } from "@clerk/nextjs";
 
 import trashIcon from "../assests/trash.svg";
 import paperclipIcon from "../assests/paperclip.svg";
+import receiptIcon from "../assests/receipt.svg";
 
 import { deleteReimbursement, updateReimbursement } from "@/lib/api/reimbursement";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
 import { getUserById } from "@/lib/api/user";
+
+import { usePdfModal } from "@/hooks/usePdfModal";
+import { useReceiptModal } from "@/hooks/useReceiptModal";
 
 type ReimbursementRow = {
   id: string;
@@ -23,6 +27,7 @@ type ReimbursementRow = {
   statusColor: string;
 
   generatedFormPdfUrl: string | null;
+  receiptUrl: string | null;
 
   amountCents: number;
   budgetItemId: string | null;
@@ -39,15 +44,15 @@ export default function DataTable({
 }) {
   const { user, isLoaded } = useUser();
 
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeReimbursement, setActiveReimbursement] = useState<ReimbursementRow | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
+  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
+  const { handleOpenReceipt } = useReceiptModal();
 
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
 
   const [acting, setActing] = useState<"APPROVE" | "PAID" | "REJECT" | null>(null);
 
+  // Reject UI
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectErr, setRejectErr] = useState("");
@@ -56,13 +61,16 @@ export default function DataTable({
     if (!isLoaded) return;
 
     let cancelled = false;
+
     (async () => {
       try {
         setLoadingRole(true);
+
         if (!user?.id) {
           if (!cancelled) setIsTCU(false);
           return;
         }
+
         const dbUser = await getUserById(user.id);
         if (!cancelled) setIsTCU(dbUser?.role === "TCU_TREASURER");
       } catch {
@@ -77,38 +85,21 @@ export default function DataTable({
     };
   }, [isLoaded, user?.id]);
 
-  const handleOpenPdf = async (r: ReimbursementRow) => {
-    if (!r.generatedFormPdfUrl) return;
-
-    // reset reject state each time you open a new PDF
+  const resetRejectUI = () => {
     setRejectOpen(false);
     setRejectReason("");
     setRejectErr("");
-
-    setLoadingPdf(true);
-    try {
-      const res = await fetch(
-        `/api/reimbursements/signed-url?url=${encodeURIComponent(r.generatedFormPdfUrl)}`
-      );
-      const json = await res.json();
-      if (json.signedUrl) {
-        setPdfUrl(json.signedUrl);
-        setActiveReimbursement(r);
-      }
-    } catch (e) {
-      console.error("Failed to load PDF", e);
-    } finally {
-      setLoadingPdf(false);
-    }
   };
 
-  const closeModal = () => {
-    setPdfUrl(null);
-    setActiveReimbursement(null);
+  const closeAndReset = () => {
+    resetRejectUI();
+    closeModal();
+  };
 
-    setRejectOpen(false);
-    setRejectReason("");
-    setRejectErr("");
+  const openPdfAndReset = (r: ReimbursementRow) => {
+    if (!r.generatedFormPdfUrl) return;
+    resetRejectUI();
+    handleOpenPdf(r.generatedFormPdfUrl, r);
   };
 
   const onApprove = async () => {
@@ -122,7 +113,8 @@ export default function DataTable({
         reviewedAt: new Date(),
       });
 
-      setActiveReimbursement((prev) => (prev ? { ...prev, status: "APPROVED" } : prev));
+      closeAndReset();
+      window.location.reload();
     } catch (e) {
       console.error("Approve failed:", e);
       alert("Approve failed.");
@@ -144,6 +136,7 @@ export default function DataTable({
 
     setActing("PAID");
     try {
+      // Update budget ONLY when actually paid
       const item = await getBudgetItemById(budgetItemId);
       const newSpent = (item.spentCents ?? 0) + amountCents;
       await updateBudgetItem(budgetItemId, { spentCents: newSpent });
@@ -153,9 +146,7 @@ export default function DataTable({
         paidAt: new Date(),
       });
 
-      setActiveReimbursement((prev) => (prev ? { ...prev, status: "PAID" } : prev));
-
-      closeModal();
+      closeAndReset();
       window.location.reload();
     } catch (e) {
       console.error("Paid failed:", e);
@@ -167,6 +158,7 @@ export default function DataTable({
 
   const onRejectClick = () => {
     if (!activeReimbursement || !isTCU) return;
+    if (activeReimbursement.status === "PAID") return;
 
     setRejectErr("");
     setRejectOpen(true);
@@ -174,9 +166,10 @@ export default function DataTable({
 
   const onSubmitReject = async () => {
     if (!activeReimbursement || !isTCU) return;
+    if (activeReimbursement.status === "PAID") return;
 
     const reason = rejectReason.trim();
-    if (reason.length === 0) {
+    if (!reason) {
       setRejectErr("Please enter a rejection reason.");
       return;
     }
@@ -189,27 +182,15 @@ export default function DataTable({
         reviewedAt: new Date(),
       });
 
-      // update modal state so UI matches
-      setActiveReimbursement((prev) =>
-        prev ? { ...prev, status: "REJECTED", rejectionReason: reason } : prev
-      );
-
-      closeModal();
+      closeAndReset();
       window.location.reload();
     } catch (e) {
       console.error("Reject failed:", e);
-      alert("Reject failed.");
+      setRejectErr("Reject failed. Please try again.");
     } finally {
       setActing(null);
     }
   };
-
-  const actionKind: "APPROVE" | "PAID" | null =
-    activeReimbursement?.status === "SUBMITTED"
-      ? "APPROVE"
-      : activeReimbursement?.status === "APPROVED"
-      ? "PAID"
-      : null;
 
   return (
     <div>
@@ -227,7 +208,7 @@ export default function DataTable({
         {data.map((r) => (
           <div
             key={r.id}
-            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)] "
+            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)]"
           >
             <span className="w-[12%]">{r.date}</span>
             <span className="w-[14%]">{r.payTo}</span>
@@ -240,10 +221,7 @@ export default function DataTable({
 
               {r.status === "REJECTED" && (r.rejectionReason ?? "").trim() !== "" && (
                 <span className="relative group inline-flex items-center">
-                  {/* icon (paperclip for now) */}
                   <Image src={paperclipIcon} alt="Rejection reason" width={16} height={16} />
-
-                  {/* tooltip */}
                   <span
                     className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2
                                w-56 rounded-lg bg-black text-white text-[11px] leading-snug
@@ -263,9 +241,7 @@ export default function DataTable({
                     if (!confirm("Are you sure you want to delete this reimbursement?")) return;
                     await deleteReimbursement(r.id);
                     window.location.reload();
-                
                   }}
-
                 >
                   <Image src={trashIcon} alt="Delete" width={18} height={18} />
                 </button>
@@ -273,10 +249,16 @@ export default function DataTable({
 
               <button
                 className="cursor-pointer disabled:opacity-30"
-                onClick={() => handleOpenPdf(r)}
+                onClick={() => handleOpenReceipt(r.receiptUrl)}
+                disabled={!r.receiptUrl}
+              >
+                <Image src={receiptIcon} alt="Receipt" width={18} height={18} />
+              </button>
+
+              <button
+                className="cursor-pointer disabled:opacity-30"
+                onClick={() => openPdfAndReset(r)}
                 disabled={!r.generatedFormPdfUrl || loadingPdf}
-     
-                
               >
                 <Image src={paperclipIcon} alt="Attachment" width={18} height={18} />
               </button>
@@ -287,14 +269,20 @@ export default function DataTable({
 
       {/* PDF Modal */}
       {pdfUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={closeAndReset}
+        >
           <div
             className="bg-white rounded-xl w-[95%] max-w-[1100px] h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
               <span className="font-semibold text-lg">Reimbursement Form</span>
-              <button onClick={closeModal} className="text-xl font-bold text-black hover:text-gray-500">
+              <button
+                onClick={closeAndReset}
+                className="text-xl font-bold text-black hover:text-gray-500"
+              >
                 ✕
               </button>
             </div>
@@ -306,15 +294,8 @@ export default function DataTable({
 
               {!loadingRole && isTCU && (
                 <div className="w-[260px] border-l border-[#EAEAEA] p-4 flex flex-col gap-3 bg-white">
-                  <div className="text-sm text-gray-700">
-                    <div className="font-semibold text-gray-900 mb-1">Actions</div>
-                    <div className="text-xs text-gray-500">
-                      {activeReimbursement ? `Reimbursement: ${activeReimbursement.id}` : ""}
-                    </div>
-                    <div className="text-xs text-gray-500">Status: {activeReimbursement?.status ?? "—"}</div>
-                  </div>
-
-                  {actionKind === "APPROVE" && (
+                 {/* Actions */}
+                  {activeReimbursement?.status === "SUBMITTED" && (
                     <button
                       type="button"
                       onClick={onApprove}
@@ -325,77 +306,75 @@ export default function DataTable({
                     </button>
                   )}
 
-                  {actionKind === "PAID" && (
+                  {activeReimbursement?.status === "APPROVED" && (
                     <button
                       type="button"
                       onClick={onPaid}
                       disabled={acting !== null}
                       className="w-full rounded-xl py-3 font-semibold text-white bg-[#3172AE] hover:bg-[#2860a0] disabled:opacity-50"
                     >
-                      {acting === "PAID" ? "Marking Paid..." : "Paid"}
+                      {acting === "PAID" ? "Marking Paid..." : "Pay"}
                     </button>
                   )}
 
-                  {actionKind === null && (
+                  {activeReimbursement?.status === "PAID" && (
                     <button
                       type="button"
                       disabled
                       className="w-full rounded-xl py-3 font-semibold bg-gray-100 text-gray-500 cursor-not-allowed"
                     >
-                      {activeReimbursement?.status ?? "—"}
+                      Paid
                     </button>
                   )}
 
-                  {!rejectOpen ? (
-                    <button
-                      type="button"
-                      onClick={onRejectClick}
-                      disabled={acting !== null}
-                      className="w-full rounded-xl py-3 font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                  ) : (
-                    <div className="mt-1 flex flex-col gap-2">
-                      <label className="text-xs text-gray-500 font-[family-name:var(--font-pt-sans)]">
-                        Rejection reason
-                      </label>
+                  {/* Reject: hidden when PAID */}
+                  {activeReimbursement?.status !== "PAID" &&
+                    (rejectOpen ? (
+                      <div className="mt-1 flex flex-col gap-2">
+                        <label className="text-xs text-gray-500 font-[family-name:var(--font-pt-sans)]">
+                          Rejection reason
+                        </label>
 
-                      <textarea
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        rows={4}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#3172AE]"
-                        placeholder="Explain why this reimbursement was rejected..."
-                      />
+                        <textarea
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          rows={4}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#3172AE]"
+                          placeholder="Explain why this reimbursement was rejected..."
+                        />
 
-                      {rejectErr && <div className="text-xs text-red-600">{rejectErr}</div>}
+                        {rejectErr && <div className="text-xs text-red-600">{rejectErr}</div>}
 
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRejectOpen(false);
-                            setRejectReason("");
-                            setRejectErr("");
-                          }}
-                          disabled={acting !== null}
-                          className="flex-1 rounded-xl py-2.5 font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={resetRejectUI}
+                            disabled={acting !== null}
+                            className="flex-1 rounded-xl py-2.5 font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={onSubmitReject}
-                          disabled={acting !== null || rejectReason.trim().length === 0}
-                          className="flex-1 rounded-xl py-2.5 font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                        >
-                          {acting === "REJECT" ? "Submitting..." : "Submit response"}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={onSubmitReject}
+                            disabled={acting !== null || rejectReason.trim().length === 0}
+                            className="flex-1 rounded-xl py-2.5 font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {acting === "REJECT" ? "Submitting..." : "Submit"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={onRejectClick}
+                        disabled={acting !== null}
+                        className="w-full rounded-xl py-3 font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    ))}
                 </div>
               )}
             </div>

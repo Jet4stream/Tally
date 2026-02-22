@@ -8,7 +8,7 @@ import NavBar from "@/app/components/NavBar";
 import TCUTabSpacer from "@/app/components/TabSpacerTCU";
 
 import { useTreasurerStore } from "@/store/treasurerStore";
-import { getUserById } from "@/lib/api/user"; 
+import { getUserById } from "@/lib/api/user"; // <-- make sure you have this helper
 
 export default function Page() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function Page() {
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Not signed in at all
+    // Not signed in at all — middleware should handle this, but safe fallback:
     if (!user?.id) {
       router.replace("/pages/login");
       return;
@@ -61,29 +61,24 @@ export default function Page() {
     };
   }, [isLoaded, user?.id, treasurerClubId, router]);
 
-  // check prevents flash of TCU page while redirecting/checking
+  // Optional: prevent flash of TCU page while redirecting/checking
   if (checking) {
+    return (
+      <div>
+        <NavBar title="TCU Treasury" />
+        <div className="px-4 sm:px-6 lg:px-[32px]">
+          <p className="text-white/90">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Sticky wrapper */}
-      <div className="sticky top-0 z-50">
-        <NavBar title="TCU Treasury" />
-      </div>
-
-      <div className="px-4 sm:px-6 lg:px-[32px] pt-4">
-        <p className="text-white/90">Checking access...</p>
+      <NavBar title="TCU Treasury" />
+      <div>
+        <TCUTabSpacer />
       </div>
     </div>
   );
-}
-
-return (
-  <div>
-    {/* Sticky wrapper */}
-    <div className="sticky top-0 z-50">
-      <NavBar title="TCU Treasury" />
-      <TCUTabSpacer />
-    </div>
-  </div>
-);
 }
