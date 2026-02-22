@@ -24,9 +24,17 @@ export default function Page() {
 
   return (
     <div className="pt-[64px] sm:pt-[80px] lg:pt-[100px]">
+        
       <MemberTopBar />
+      
       {isTreasurer && <TreasuryMemberViewBar />}
+      <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">
+      <p className="text-sm sm:text-base text-black font-[family-name:var(--font-pt-sans)]">
+      Your club treasurers submitted the following reimbursements. Please reach out to them with any questions.
+    </p>
+    </div>
       <MemberDashboard />
     </div>
   );
 }
+
