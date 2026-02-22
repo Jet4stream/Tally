@@ -68,16 +68,10 @@ export default function Page() {
       {/* Sticky wrapper */}
       <div className="sticky top-0 z-50">
         <NavBar title="TCU Treasury" />
-        <div className="px-4 sm:px-6 lg:px-[32px]">
-          <p className="text-white/90">Checking access...</p>
-        </div>
       </div>
 
-  return (
-    <div>
-      <NavBar title="TCU Treasury" />
-      <div>
-        <TCUTabSpacer />
+      <div className="px-4 sm:px-6 lg:px-[32px] pt-4">
+        <p className="text-white/90">Checking access...</p>
       </div>
     </div>
   );
