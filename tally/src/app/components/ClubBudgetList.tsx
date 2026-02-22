@@ -36,7 +36,7 @@ export default function ClubBudgetList() {
         <input
           type="text"
           placeholder="Search for a club budget..."
-          className="w-full h-14 px-6 rounded-2xl border border-gray-100 bg-[#F9F9F9] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-lg text-gray-400 shadow-sm"
+          className="w-full h-14 px-6 rounded-2xl border border-gray-100 bg-[#F9F9F9] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3172AE]/30 transition-all text-lg text-gray-400 shadow-sm"
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
@@ -45,7 +45,7 @@ export default function ClubBudgetList() {
         {filteredClubs.map((club) => (
           <button
             key={club.id}
-            className="flex items-center p-6 bg-white border border-gray-100 rounded-[1.5rem] hover:border-blue-400 hover:shadow-sm transition-all group"
+            className="flex items-center p-6 bg-white border border-gray-100 rounded-[1.5rem] hover:border-[#3172AE] hover:shadow-sm transition-all group"
           >
             <div className="flex items-center gap-6">
               <div className="relative w-10 h-10 flex-shrink-0">
