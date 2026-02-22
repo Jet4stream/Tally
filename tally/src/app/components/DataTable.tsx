@@ -6,10 +6,14 @@ import { useUser } from "@clerk/nextjs";
 
 import trashIcon from "../assests/trash.svg";
 import paperclipIcon from "../assests/paperclip.svg";
+import receiptIcon from "../assests/receipt.svg";
 
 import { deleteReimbursement, updateReimbursement } from "@/lib/api/reimbursement";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
 import { getUserById } from "@/lib/api/user";
+import { ReimbursementStatus } from "@prisma/client";
+import { usePdfModal } from "@/hooks/usePdfModal";
+import { useReceiptModal } from "@/hooks/useReceiptModal";
 
 type ReimbursementRow = {
   id: string;
@@ -23,7 +27,7 @@ type ReimbursementRow = {
   statusColor: string;
 
   generatedFormPdfUrl: string | null;
-
+  receiptUrl: string | null;
   amountCents: number;
   budgetItemId: string | null;
 
@@ -38,13 +42,12 @@ export default function DataTable({
   showDelete?: boolean;
 }) {
   const { user, isLoaded } = useUser();
-
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeReimbursement, setActiveReimbursement] = useState<ReimbursementRow | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
+  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
+  const { handleOpenReceipt } = useReceiptModal();
 
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
+  const [approving, setApproving] = useState(false);
 
   const [acting, setActing] = useState<"APPROVE" | "PAID" | "REJECT" | null>(null);
 
@@ -227,7 +230,7 @@ export default function DataTable({
         {data.map((r) => (
           <div
             key={r.id}
-            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)] "
+            className="flex items-center border border-[#8D8B8B] rounded-lg px-3 py-4 text-sm font-[family-name:var(--font-pt-sans)]"
           >
             <span className="w-[12%]">{r.date}</span>
             <span className="w-[14%]">{r.payTo}</span>
@@ -271,9 +274,17 @@ export default function DataTable({
                 </button>
               )}
 
+             <button
+                className="cursor-pointer disabled:opacity-30"
+                onClick={() => handleOpenReceipt(r.receiptUrl)}
+                disabled={!r.receiptUrl}
+                >
+                <Image src={receiptIcon} alt="Receipt" width={18} height={18} />
+                </button>
+
               <button
                 className="cursor-pointer disabled:opacity-30"
-                onClick={() => handleOpenPdf(r)}
+                onClick={() => r.generatedFormPdfUrl && handleOpenPdf(r.generatedFormPdfUrl, r)}
                 disabled={!r.generatedFormPdfUrl || loadingPdf}
      
                 
@@ -285,7 +296,6 @@ export default function DataTable({
         ))}
       </div>
 
-      {/* PDF Modal */}
       {pdfUrl && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
           <div

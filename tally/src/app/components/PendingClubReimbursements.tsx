@@ -5,40 +5,40 @@ import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 
 import paperclipIcon from "../assests/paperclip.svg";
+import receiptIcon from "../assests/receipt.svg";
 
 import { getReimbursementsByClubId, updateReimbursement } from "@/lib/api/reimbursement";
 import { getUserById } from "@/lib/api/user";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
 
 import { ReimbursementStatus } from "@prisma/client";
+import { usePdfModal } from "@/hooks/usePdfModal";
+import { useReceiptModal } from "@/hooks/useReceiptModal";
+
+
 
 export default function PendingClubReimbursements({ clubId }: { clubId: string }) {
   const { user, isLoaded } = useUser();
+  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
+  const { handleOpenReceipt } = useReceiptModal();
 
   // show both SUBMITTED + APPROVED (because Approved becomes Paid)
   const [pending, setPending] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(true);
 
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeReimbursement, setActiveReimbursement] = useState<any | null>(null);
-
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
 
-  const [acting, setActing] = useState<"APPROVE" | "PAID" | "REJECT" | null>(null);
-
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectErr, setRejectErr] = useState("");
-
-  const refreshList = async () => {
-    const all = await getReimbursementsByClubId(clubId);
-    const visible = (all ?? []).filter(
-      (r) =>
-        r.status === ReimbursementStatus.SUBMITTED ||
-        r.status === ReimbursementStatus.APPROVED
-    );
-    setPending(visible);
+  const parseDescription = (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.expenses?.length) {
+        return parsed.expenses.map((e: any) => e.description).join(", ");
+      }
+      return raw;
+    } catch {
+      return raw;
+    }
   };
 
   useEffect(() => {
@@ -170,6 +170,11 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
 
       closeModal();
 
+      const all = await getReimbursementsByClubId(clubId);
+      const submitted = (all ?? []).filter(
+        (r) => r.status === ReimbursementStatus.SUBMITTED
+      );
+      setPending(submitted);
       // After paid, remove from list (we only show SUBMITTED/APPROVED)
       await refreshList();
     } catch (e) {
@@ -258,7 +263,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
                   </span>
 
                   <span className="font-medium text-gray-700 truncate px-2">
-                    {r.description}
+                    {parseDescription(r.description)}
                   </span>
 
                   <div className="flex items-center gap-2">
@@ -267,12 +272,21 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
                     </span>
 
                     <Image
+                      src={receiptIcon}
+                      alt="Receipt"
+                      width={18}
+                      height={18}
+                      className="cursor-pointer disabled:opacity-30"
+                      onClick={() => handleOpenReceipt(r.receiptFileUrl)}
+                    />
+
+                    <Image
                       src={paperclipIcon}
                       alt="Attachment"
                       width={18}
                       height={18}
                       className="cursor-pointer"
-                      onClick={() => handleOpenPdf(r)}
+                      onClick={() => handleOpenPdf(r.generatedFormPdfUrl, r)}
                     />
                   </div>
                 </div>
