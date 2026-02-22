@@ -507,7 +507,7 @@ export default function RequestReimbursement() {
   );
 }
 
-// ----- Step 1: choose member (dynamic) -----
+// ----- step 1: choose member (dynamic) -----
 function StepChooseMember({
   members,
   selectedMemberId,
@@ -599,7 +599,7 @@ function StepChooseMember({
   );
 }
 
-// ----- Step 2: expenses -----
+// ----- step 2: expenses -----
 function StepInputExpenses({
   expenses,
   onExpenseChange,
@@ -692,7 +692,7 @@ function StepInputExpenses({
   );
 }
 
-// ----- Step 3: upload -----
+// ----- step 3: upload -----
 function StepUploadReceipt({
   uploadedFile,
   onUpload,
@@ -771,7 +771,7 @@ function StepUploadReceipt({
   );
 }
 
-// ----- Step 4: budget section + line (dynamic) -----
+// ----- step 4: budget section + line (dynamic) -----
 function StepChooseBudget({
   budgetSections,
   selectedSectionId,
@@ -841,7 +841,7 @@ function StepChooseBudget({
   );
 }
 
-// ----- Step 5: review/sign -----
+// ----- step 5: review/sign -----
 function StepReviewSign({
   signature,
   setSignature,
