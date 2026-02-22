@@ -97,3 +97,5 @@ export async function updateUserController(id: string, input: UpdateUserInput) {
 export async function deleteUserController(id: string) {
   return prisma.user.delete({ where: { id } });
 }
+
+

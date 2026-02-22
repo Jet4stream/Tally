@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@prisma/client";
+import type { ClubMembershipWithUser } from "@/types/clubMembership";
+import { getClubMembershipsByClubId, getTreasurerClubMembers } from "@/lib/api/clubMembership";
+import { useUser } from "@clerk/nextjs";
+import type { BudgetSection } from "@prisma/client";
+import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
+import type { BudgetItem } from "@prisma/client";
+import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
+
 
 // Load Public Sans from Google Fonts
 if (typeof document !== "undefined") {
@@ -27,13 +35,104 @@ const ALL_MEMBERS = [
 
 export default function RequestReimbursement() {
 	const [currentStep, setCurrentStep] = useState(0);
-	const [selectedMember, setSelectedMember] = useState(null);
 	const [expenses, setExpenses] = useState(
 		Array(5).fill(null).map(() => ({ description: "", amount: "" }))
 	);
 	const [uploadedFile, setUploadedFile] = useState(null);
-	const [selectedEvent, setSelectedEvent] = useState({ event: "", line: "" });
+	// const [selectedEvent, setSelectedEvent] = useState({ event: "", line: "" });
 	const [signature, setSignature] = useState({ name: "", date: "" });
+	const [memberships, setMemberships] = useState<ClubMembershipWithUser[]>([]);
+	const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [treasurerClubId, setTreasurerClubId] = useState<string | null>(null);
+  const [budgetSections, setBudgetSections] = useState<BudgetSection[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+
+	const { user, isLoaded } = useUser();
+
+
+	const clubMembers: User[] = useMemo(() => {
+		const map = new Map<string, User>();
+		for (const m of memberships) {
+			if (m.user) map.set(m.user.id, m.user);
+		}
+		return Array.from(map.values()).sort((a, b) =>
+			`${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+		);
+		}, [memberships]);
+
+		const selectedMember = useMemo(() => {
+		if (!selectedMemberId) return null;
+		return clubMembers.find((u) => u.id === selectedMemberId) ?? null;
+	}, [selectedMemberId, clubMembers]);
+
+
+	useEffect(() => {
+		if (!isLoaded || !user) return;
+
+		let cancelled = false;
+
+		(async () => {
+			try {
+			const data = await getTreasurerClubMembers(user.id);
+      if (cancelled) return;
+
+      setTreasurerClubId(data.clubId);   
+      setMemberships(data.memberships);     
+			} catch (e) {
+			console.error("Failed to fetch treasurer club members:", e);
+			if (!cancelled) setMemberships([]);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isLoaded, user]);
+
+  useEffect(() => {
+    if (!treasurerClubId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const sections = await getBudgetSectionsByClubId(treasurerClubId);
+        if (!cancelled) setBudgetSections(sections);
+      } catch (e) {
+        console.error("Failed to fetch budget sections:", e);
+        if (!cancelled) setBudgetSections([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [treasurerClubId]);
+
+  useEffect(() => {
+    if (!selectedSectionId) {
+      setBudgetItems([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const items = await getBudgetItemsBySectionId(selectedSectionId);
+        if (!cancelled) setBudgetItems(items);
+      } catch (e) {
+        console.error("Failed to fetch budget items:", e);
+        if (!cancelled) setBudgetItems([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSectionId]);
 
 	const handleExpenseChange = (i, field, value) => {
 		setExpenses((prev) => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
@@ -92,11 +191,24 @@ export default function RequestReimbursement() {
 				</div>
 
 				{/* Step 1 */}
-				{i === 0 && !isActive && selectedMember && (
+				{/* {i === 0 && !isActive && selectedMember && (
 					<p style={{ color: "#3172AE", fontWeight: 600, fontSize: 14, margin: 0 }}>{selectedMember}</p>
 				)}
 				{i === 0 && isActive && (
 					<StepChooseMember selectedMember={selectedMember} onSelect={setSelectedMember} />
+				)} */}
+				{i === 0 && !isActive && selectedMember && (
+				<p style={{ color: "#3172AE", fontWeight: 600, fontSize: 14, margin: 0 }}>
+					{selectedMember.firstName} {selectedMember.lastName}
+				</p>
+				)}
+
+				{i === 0 && isActive && (
+				<StepChooseMember
+					members={clubMembers}
+					selectedMemberId={selectedMemberId}
+					onSelectMemberId={setSelectedMemberId}
+				/>
 				)}
 
 				{/* Step 2 */}
@@ -128,12 +240,16 @@ export default function RequestReimbursement() {
 				)}
 
 				{/* Step 4 */}
-				{i === 3 && !isActive && selectedEvent.event && (
-					<p style={{ color: "#3172AE", fontWeight: 600, fontSize: 14, margin: 0 }}>{selectedEvent.event}{selectedEvent.line ? ` — ${selectedEvent.line}` : ""}</p>
-				)}
 				{i === 3 && isActive && (
-					<StepChooseEvent selectedEvent={selectedEvent} onSelect={setSelectedEvent} />
-				)}
+          <StepChooseEvent
+            budgetSections={budgetSections}
+            selectedSectionId={selectedSectionId}
+            setSelectedSectionId={setSelectedSectionId}
+            budgetItems={budgetItems}
+            selectedItemId={selectedItemId}
+            setSelectedItemId={setSelectedItemId}
+          />
+        )}
 				</div>
 			);
 			})}
@@ -178,60 +294,77 @@ export default function RequestReimbursement() {
 }
 
 /* 1: choosing club member */
-function StepChooseMember({ selectedMember, onSelect }) {
-	const [search, setSearch] = useState("");
+function StepChooseMember({
+  members,
+  selectedMemberId,
+  onSelectMemberId,
+}: {
+  members: User[];
+  selectedMemberId: string | null;
+  onSelectMemberId: (id: string) => void;
+}) {
+  const [search, setSearch] = useState("");
 
-	const filtered = ALL_MEMBERS.filter((name) =>
-		name.toLowerCase().includes(search.toLowerCase())
-	);
+  const filtered = members.filter((u) =>
+    `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
+  );
 
-	const colSize = Math.ceil(filtered.length / 3);
-	const columns = [
-		filtered.slice(0, colSize),
-		filtered.slice(colSize, colSize * 2),
-		filtered.slice(colSize * 2),
-	];
+  const colSize = Math.ceil(filtered.length / 3) || 1;
+  const columns = [
+    filtered.slice(0, colSize),
+    filtered.slice(colSize, colSize * 2),
+    filtered.slice(colSize * 2),
+  ];
 
-	return (
-		<div>
-		<div style={s.searchRow}>
-			<span style={{ fontSize: 12, color: "#9ca3af" }}>🔍</span>
-			<input
-			style={s.searchInput}
-			placeholder="Search members..."
-			value={search}
-			onChange={(e) => setSearch(e.target.value)}
-			/>
-		</div>
-		<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
-			{columns.map((col, ci) => (
-			<div key={ci} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-				{col.map((name, ni) => (
-				<button
-					key={`${ci}-${ni}`}
-					onClick={() => onSelect(name)}
-					style={{
-					background: "none",
-					border: "none",
-					cursor: "pointer",
-					textAlign: "left",
-					fontSize: 13,
-					padding: "3px 0",
-					color: selectedMember === name ? "#3172AE" : "#111",
-					fontWeight: selectedMember === name ? 600 : 400,
-					}}
-				>
-					{name}
-				</button>
-				))}
-			</div>
-			))}
-		</div>
-		{filtered.length === 0 && (
-			<p style={{ color: "#9ca3af", fontSize: 13, marginTop: 8 }}>No members found.</p>
-		)}
-		</div>
-	);
+  return (
+    <div>
+      <div style={s.searchRow}>
+        <span style={{ fontSize: 12, color: "#9ca3af" }}>🔍</span>
+        <input
+          style={s.searchInput}
+          placeholder="Search members..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+        {columns.map((col, ci) => (
+          <div key={ci} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {col.map((u) => {
+              const name = `${u.firstName} ${u.lastName}`;
+              const isSelected = selectedMemberId === u.id;
+
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => onSelectMemberId(u.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: 13,
+                    padding: "3px 0",
+                    color: isSelected ? "#3172AE" : "#111",
+                    fontWeight: isSelected ? 600 : 400,
+                  }}
+                >
+                  {name}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <p style={{ color: "#9ca3af", fontSize: 13, marginTop: 8 }}>
+          No members found.
+        </p>
+      )}
+    </div>
+  );
 }
 
 /* 2: input expenses */
@@ -307,24 +440,61 @@ const EVENTS = [
 
 const BUDGET_LINES = ["Food", "Decorations", "Bonding", "Supplies", "Transportation", "Marketing", "Other"];
 
-function StepChooseEvent({ selectedEvent, onSelect }) {
+function StepChooseEvent({
+  budgetSections,
+  selectedSectionId,
+  setSelectedSectionId,
+  budgetItems,
+  selectedItemId,
+  setSelectedItemId,
+}: {
+  budgetSections: BudgetSection[];
+  selectedSectionId: string | null;
+  setSelectedSectionId: (id: string | null) => void;
+  budgetItems: BudgetItem[];
+  selectedItemId: string | null;
+  setSelectedItemId: (id: string | null) => void;
+}) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      
+      {/* SECTION SELECT */}
       <select
-        style={{ ...s.input, appearance: "none", background: `#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center`, paddingRight: 28, cursor: "pointer", color: selectedEvent.event ? "#111" : "#9ca3af" }}
-        value={selectedEvent.event}
-        onChange={(e) => onSelect(p => ({ ...p, event: e.target.value }))}
+        style={s.input}
+        value={selectedSectionId ?? ""}
+        onChange={(e) => {
+          const id = e.target.value || null;
+          setSelectedSectionId(id);
+          setSelectedItemId(null); // reset items when section changes
+        }}
       >
-        <option value="" disabled>Select event...</option>
-        {EVENTS.map((ev) => <option key={ev} value={ev}>{ev}</option>)}
+        <option value="" disabled>
+          Select budget section...
+        </option>
+
+        {budgetSections.map((section) => (
+          <option key={section.id} value={section.id}>
+            {section.title} {/* adjust if field is different */}
+          </option>
+        ))}
       </select>
+
+      {/* ITEM SELECT (dynamic) */}
       <select
-        style={{ ...s.input, appearance: "none", background: `#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center`, paddingRight: 28, cursor: "pointer", color: selectedEvent.line ? "#111" : "#9ca3af" }}
-        value={selectedEvent.line}
-        onChange={(e) => onSelect(p => ({ ...p, line: e.target.value }))}
+        style={s.input}
+        value={selectedItemId ?? ""}
+        onChange={(e) => setSelectedItemId(e.target.value || null)}
+        disabled={!selectedSectionId}
       >
-        <option value="" disabled>Select budget line...</option>
-        {BUDGET_LINES.map((bl) => <option key={bl} value={bl}>{bl}</option>)}
+        <option value="" disabled>
+          {selectedSectionId ? "Select budget line..." : "Select section first"}
+        </option>
+
+        {budgetItems.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.label} {/* adjust if field is different */}
+          </option>
+        ))}
       </select>
     </div>
   );

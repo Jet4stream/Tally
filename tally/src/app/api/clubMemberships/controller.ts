@@ -45,6 +45,7 @@ export async function getClubMembershipsByUserIdController(userId: string) {
 export async function getClubMembershipsByClubIdController(clubId: string) {
   return prisma.clubMembership.findMany({
     where: { clubId },
+    include: { user: true },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -60,4 +61,49 @@ export async function updateClubMembershipController(id: string, input: UpdateCl
 
 export async function deleteClubMembershipController(id: string) {
   return prisma.clubMembership.delete({ where: { id } });
+}
+
+
+// SPECIAL BACKEND FUNCTIONS
+
+export async function findTreasurerMembershipClubId(userId: string) {
+  const treasurer = await prisma.clubMembership.findFirst({
+    where: {
+      userId,
+      role: "TREASURER" as MembershipRole,
+    },
+    select: { clubId: true },
+  });
+
+  return treasurer?.clubId ?? null;
+}
+
+export async function findClubMembersWithUsers(clubId: string) {
+  return prisma.clubMembership.findMany({
+    where: { clubId },
+    include: { user: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export async function getTreasurerClubMembersController(userId: string) {
+  const clubId = await findTreasurerMembershipClubId(userId);
+
+  if (!clubId) {
+    return null; // route will handle 403
+  }
+
+  const memberships = await findClubMembersWithUsers(clubId);
+
+  return {
+    clubId,
+    memberships, // includes user
+    members: memberships.map((m) => ({
+      userId: m.user.id,
+      fullName: `${m.user.firstName} ${m.user.lastName}`.trim(),
+      firstName: m.user.firstName,
+      lastName: m.user.lastName,
+      membershipRole: m.role,
+    })),
+  };
 }
