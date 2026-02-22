@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import DashboardContent from "./DashboardContent";
+import DashboardContent from "./TCUDashboard";
 import ClubBudgetList from "./ClubBudgetList";
 import TCUBudgetDetailView from "./TCUBudgetDetailView";
 

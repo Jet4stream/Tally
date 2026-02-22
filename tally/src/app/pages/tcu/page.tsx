@@ -66,7 +66,7 @@ export default function Page() {
     return (
       <div>
         <NavBar title="TCU Treasury" />
-        <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px] px-4 sm:px-6 lg:px-[32px]">
+        <div className="px-4 sm:px-6 lg:px-[32px]">
           <p className="text-white/90">Checking access...</p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function Page() {
   return (
     <div>
       <NavBar title="TCU Treasury" />
-      <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px]">
+      <div>
         <TCUTabSpacer />
       </div>
     </div>
