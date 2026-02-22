@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 
 import type { User, BudgetSection, BudgetItem } from "@prisma/client";
 import type { ClubMembershipWithUser } from "@/types/clubMembership";
+import { useTreasurerStore } from "@/store/treasurerStore";
 
-import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
+// import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
 
@@ -30,11 +31,9 @@ export default function RequestReimbursement() {
   const [currentStep, setCurrentStep] = useState(0);
 
   // step 1
-  const [memberships, setMemberships] = useState<ClubMembershipWithUser[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   // treasurer club + budget data
-  const [treasurerClubId, setTreasurerClubId] = useState<string | null>(null);
   const [budgetSections, setBudgetSections] = useState<BudgetSection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -47,6 +46,10 @@ export default function RequestReimbursement() {
     {}
   );
 
+  const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
+  const memberships = useTreasurerStore((s) => s.memberships);
+  const loadingTreasurer = useTreasurerStore((s) => s.loading);
+
   // step 2/3/5
   const [expenses, setExpenses] = useState(
     Array(5)
@@ -55,6 +58,8 @@ export default function RequestReimbursement() {
   );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [signature, setSignature] = useState({ name: "", date: "" });
+
+  
 
   // ---------- derived lists ----------
   const clubMembers: User[] = useMemo(() => {
@@ -87,31 +92,6 @@ export default function RequestReimbursement() {
     return budgetItems.find((bi) => bi.id === selectedItemId) ?? null;
   }, [selectedItemId, budgetItems]);
 
-  // ---------- fetch treasurer club + memberships ----------
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const data = await getTreasurerClubMembers(user.id);
-        if (cancelled) return;
-
-        setTreasurerClubId(data.clubId);
-        setMemberships(data.memberships);
-      } catch (e) {
-        console.error("Failed to fetch treasurer club members:", e);
-        if (cancelled) return;
-        setTreasurerClubId(null);
-        setMemberships([]);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, user]);
 
   // ---------- fetch budget sections ----------
   useEffect(() => {
@@ -266,6 +246,25 @@ export default function RequestReimbursement() {
 
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
+
+  const filledExpenses = expenses.filter((e) => e.description || e.amount);
+  const expenseTotal = expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+  const canSubmit = signature.name && signature.date;
+  const [submitHover, setSubmitHover] = useState(false);
+
+  if (loadingTreasurer) {
+    return <div className="p-6 text-gray-500">Loading...</div>;
+  }
+
+  if (!treasurerClubId) {
+    return (
+      <div className="p-6 text-red-500">
+        You do not have treasurer access.
+      </div>
+    );
+  }
+
 
   return (
     <div style={s.shell}>

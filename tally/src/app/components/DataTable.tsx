@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import trashIcon from "../assests/trash.svg";
 import paperclipIcon from "../assests/paperclip.svg";
+import { deleteReimbursement } from "@/lib/api/reimbursement";
+
 
 type Reimbursement = {
   id: string;
@@ -60,8 +62,19 @@ export default function DataTable({ data, showDelete = true }: { data: Reimburse
             <span className={`w-[18%] ${r.statusColor}`}>{r.status}</span>
             <span className="w-[6%] flex gap-4 justify-end">
               {showDelete && (
-                <button onClick={() => console.log("delete", i)}>
-                  <Image src={trashIcon} alt="Delete" width={18} height={18} className="cursor-pointer" />
+                <button
+                  onClick={async () => {
+                    if (!confirm("Are you sure you want to delete this reimbursement?")) return;
+
+                    try {
+                      await deleteReimbursement(r.id);
+                      window.location.reload(); // quick refresh (can improve later)
+                    } catch (e) {
+                      alert("Failed to delete reimbursement");
+                    }
+                  }}
+                >
+                  <Image src={trashIcon} alt="Delete" width={18} height={18} className="cursor-pointer"/>
                 </button>
               )}
               <button

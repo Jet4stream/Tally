@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Public_Sans, PT_Sans } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import TreasurerHydrator from "@/app/components/TreasurerHydrator";
+
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -23,7 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en" className={`${publicSans.variable} ${ptSans.variable}`}>
-        <body>{children}</body>
+        <body>
+          {children}
+          <TreasurerHydrator />
+        </body>
       </html>
     </ClerkProvider>
   );
