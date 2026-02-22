@@ -30,6 +30,8 @@ export default function DashboardContent() {
       event: r.clubName ?? "",
       status: r.status,
       generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
+      amountCents: r.amountCents,
+      budgetItemId: r.budgetItemId,
       statusColor:
         r.status === "REJECTED"
           ? "text-red-500"

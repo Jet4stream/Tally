@@ -23,6 +23,8 @@ export default function MemberDashboard() {
       event: r.clubName ?? "",
       generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
       status: r.status,
+      amountCents: r.amountCents,
+      budgetItemId: r.budgetItemId,
       statusColor:
         r.status === "REJECTED"
           ? "text-red-500"
