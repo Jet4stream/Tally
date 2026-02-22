@@ -23,14 +23,14 @@ export default function Page() {
   if (!treasurerClubId) return null;
 
   return (
-    <div>
+  <div>
+    <div className="sticky top-0 z-50">
       <NavBar />
-      <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px]">
-        <TabSpacer />
-        <div className="px-4 sm:px-6 lg:px-[32px] mt-4">
-          <NewReimbursementButton />
-        </div>
-      </div>
+      <TabSpacer />
     </div>
-  );
+    <div className="px-4 sm:px-6 lg:px-[32px] mt-4">
+      <NewReimbursementButton />
+    </div>
+  </div>
+);
 }

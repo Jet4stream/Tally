@@ -47,10 +47,6 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
         password,
       });
 
-      if (result.status !== "complete") {
-        setError("Additional verification required.");
-        return;
-      }
 
       await setActive({ session: result.createdSessionId });
 
