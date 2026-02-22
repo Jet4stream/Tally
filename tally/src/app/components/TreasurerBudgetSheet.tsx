@@ -115,7 +115,7 @@ export default function BudgetSheet({
   const [summaryExpanded, setSummaryExpanded] = useState(true);
 
   // --- Reallocate state ---
-  const [reallocateOpen, setReallocateOpen] = useState(false);
+  const [reallocateOpen, setReallocateOpen] = useState(true);
   const [reallocateType, setReallocateType] = useState<"Food" | "Non-Food">(
     "Food"
   );
@@ -294,7 +294,6 @@ export default function BudgetSheet({
       setReallocateAmount("");
       setReallocateFromId("");
       setReallocateToId("");
-      setReallocateOpen(false);
     } catch (e) {
       console.error("Reallocation failed:", e);
       setReallocateError("Failed to save changes. Please try again.");

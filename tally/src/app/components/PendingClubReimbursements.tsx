@@ -25,7 +25,11 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const [isTCU, setIsTCU] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
 
-  const [acting, setActing] = useState<"APPROVE" | "PAID" | null>(null);
+  const [acting, setActing] = useState<"APPROVE" | "PAID" | "REJECT" | null>(null);
+
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectErr, setRejectErr] = useState("");
 
   const refreshList = async () => {
     const all = await getReimbursementsByClubId(clubId);
@@ -88,6 +92,11 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const handleOpenPdf = async (r: any) => {
     if (!r.generatedFormPdfUrl) return;
 
+    // reset reject UI each open
+    setRejectOpen(false);
+    setRejectReason("");
+    setRejectErr("");
+
     try {
       const res = await fetch(
         `/api/reimbursements/signed-url?url=${encodeURIComponent(r.generatedFormPdfUrl)}`
@@ -105,12 +114,14 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const closeModal = () => {
     setPdfUrl(null);
     setActiveReimbursement(null);
+
+    setRejectOpen(false);
+    setRejectReason("");
+    setRejectErr("");
   };
 
   const onApprove = async () => {
     if (!activeReimbursement || !isTCU) return;
-
-    // safety: only allow SUBMITTED -> APPROVED
     if (activeReimbursement.status !== ReimbursementStatus.SUBMITTED) return;
 
     setActing("APPROVE");
@@ -120,12 +131,11 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
         reviewedAt: new Date(),
       });
 
-      // Update active reimbursement locally so button changes immediately
+      // update local state so button flips immediately to Paid
       setActiveReimbursement((prev: any) =>
         prev ? { ...prev, status: ReimbursementStatus.APPROVED, reviewedAt: new Date() } : prev
       );
 
-      // Refresh side list (now includes APPROVED)
       await refreshList();
     } catch (e) {
       console.error("Approve failed:", e);
@@ -135,12 +145,8 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     }
   };
 
-  // 1) increment spentCents
-  // 2) set reimbursement status -> PAID
   const onPaid = async () => {
     if (!activeReimbursement || !isTCU) return;
-
-    // safety: only allow APPROVED -> PAID
     if (activeReimbursement.status !== ReimbursementStatus.APPROVED) return;
 
     const { id, budgetItemId, amountCents } = activeReimbursement;
@@ -169,6 +175,39 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     } catch (e) {
       console.error("Paid failed:", e);
       alert("Paid failed.");
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const onRejectClick = () => {
+    if (!activeReimbursement || !isTCU) return;
+    setRejectErr("");
+    setRejectOpen(true);
+  };
+
+  const onSubmitReject = async () => {
+    if (!activeReimbursement || !isTCU) return;
+
+    const reason = rejectReason.trim();
+    if (reason.length === 0) {
+      setRejectErr("Please enter a rejection reason.");
+      return;
+    }
+
+    setActing("REJECT");
+    try {
+      await updateReimbursement(activeReimbursement.id, {
+        status: ReimbursementStatus.REJECTED,
+        rejectionReason: reason,
+        reviewedAt: new Date(),
+      });
+
+      closeModal();
+      await refreshList();
+    } catch (e) {
+      console.error("Reject failed:", e);
+      alert("Reject failed.");
     } finally {
       setActing(null);
     }
@@ -262,11 +301,11 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
               <button onClick={closeModal}>✕</button>
             </div>
 
-            <div className="flex flex-1">
+            <div className="flex flex-1 min-h-0">
               <iframe src={pdfUrl} className="flex-1 w-full" />
 
               {!loadingRole && isTCU && (
-                <div className="w-[260px] border-l p-4 flex flex-col gap-3">
+                <div className="w-[260px] border-l p-4 flex flex-col gap-3 bg-white">
                   {/* If SUBMITTED -> show Approve */}
                   {activeReimbursement?.status === ReimbursementStatus.SUBMITTED && (
                     <button
@@ -300,14 +339,53 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
                       </button>
                     )}
 
-                  <button
-                    onClick={() =>
-                      console.log("REJECT clicked", activeReimbursement?.id)
-                    }
-                    className="w-full py-3 rounded-xl bg-red-600 text-white font-semibold"
-                  >
-                    Reject
-                  </button>
+                  {!rejectOpen ? (
+                    <button
+                      onClick={onRejectClick}
+                      disabled={acting !== null}
+                      className="w-full py-3 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  ) : (
+                    <div className="mt-1 flex flex-col gap-2">
+                      <label className="text-xs text-gray-500">Rejection reason</label>
+
+                      <textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#3172AE]"
+                        placeholder="Explain why this reimbursement was rejected..."
+                      />
+
+                      {rejectErr && <div className="text-xs text-red-600">{rejectErr}</div>}
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRejectOpen(false);
+                            setRejectReason("");
+                            setRejectErr("");
+                          }}
+                          disabled={acting !== null}
+                          className="flex-1 rounded-xl py-2.5 font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={onSubmitReject}
+                          disabled={acting !== null || rejectReason.trim().length === 0}
+                          className="flex-1 rounded-xl py-2.5 font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                        >
+                          {acting === "REJECT" ? "Submitting..." : "Submit response"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
