@@ -127,18 +127,13 @@ export default function DashboardContent() {
         >
           Paid
         </button>
-        <button
-          onClick={() => setSubTab("members")}
-          className={`w-[110px] sm:w-[140px] lg:w-[160px] text-center text-sm sm:text-base lg:text-lg font-[family-name:var(--font-public-sans)] font-medium py-2 sm:py-3 cursor-pointer ${
-            subTab === "members" ? "border-b-2 border-[#3172AE] text-black" : "text-[#8D8B8B]"
-          }`}
-        >
-          Club Members
-        </button>
+
       </div>
 
       <div className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)] overflow-y-auto">
-        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={false} />}
+        {loading && <p className="text-gray-400 text-sm">Loading...</p>}
+        {err && <p className="text-red-500 text-sm">{err}</p>}
+        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={true} />}
         {subTab === "paid" && <DataTable data={paidRows} showDelete={false} />}
         {subTab === "members" && <ClubMembers />}
       </div>
