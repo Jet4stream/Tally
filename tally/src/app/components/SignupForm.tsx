@@ -1,120 +1,237 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import React, { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSignUp } from "@clerk/nextjs";
 
-import logoFrame from '../assests/Frame.svg';
-import logoText from '../assests/Group 1.svg';
+import logoFrame from "../assests/Frame.svg";
+import logoText from "../assests/Group 1.svg";
 
-interface SignupFormProps {
+export default function SignupForm({
+  subtitle,
+  isTCU = false,
+}: {
   subtitle: string;
   isTCU?: boolean;
-}
-
-export default function SignupForm({ subtitle, isTCU = false }: SignupFormProps) {
+}) {
+  const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
-  
-  // Track form state
+
+  const [verifying, setVerifying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState("");
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "", // 1. Added confirmPassword state
   });
+  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Check if all fields have values
-  const isFormValid = Object.values(formData).every(value => value.trim() !== '');
+  const isFormValid = Object.values(formData).every((v) => v.trim() !== "");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid) {
-      router.push('/signup/complete');
+    if (!isLoaded || !isFormValid) return;
+
+    // 2. Client-side check: Do passwords match?
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await signUp.create({
+        emailAddress: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setVerifying(true);
+    } catch (err: any) {
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === "form_identifier_exists") {
+        setError("This email is already in use.");
+      } else if (clerkError?.code === "session_exists") {
+        router.push("/pages/signup/complete");
+      } else {
+        setError(clerkError?.message || "Something went wrong.");
+      }
+      setVerifying(false);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ... handleVerify and Spinner remain the same ...
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signUp) return;
+    setLoading(true);
+
+    try {
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+      if (completeSignUp.status === "complete") {
+        await setActive({ session: completeSignUp.createdSessionId });
+
+        const redirectPath = isTCU
+          ? "/pages/signup/complete?role=TCU"
+          : "/pages/signup/complete";
+
+        router.push(redirectPath);
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Invalid code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const Spinner = () => (
+    <div className="flex items-center justify-center">
+      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#3b71b1] flex items-center justify-center relative overflow-hidden font-sans">
-      {!isTCU && (
-        <>
-          <div className="absolute -bottom-16 -right-16 w-64 h-64 border-[32px] border-white/10 rounded-full" />
-          <div className="absolute -bottom-40 right-12 w-80 h-80 border-[32px] border-white/10 rounded-full" />
-        </>
-      )}
-
-      <div className="bg-white p-16 rounded-[2rem] shadow-2xl w-full max-w-[540px] z-10 mx-4 text-center">
-        <div className="flex flex-col items-center mb-12">
-          <div className="flex items-center gap-3 mb-8">
-            <Image src={logoFrame} alt="Logo" width={28} height={28} />
-            <Image src={logoText} alt="Tally" width={75} height={26} />
+      <div className="bg-white p-16 rounded-[2rem] shadow-2xl w-full max-w-[540px] z-10 mx-4 text-center transition-all duration-300">
+        {verifying ? (
+          <div className="flex flex-col items-center animate-in fade-in duration-500">
+            <h1 className="text-[32px] font-extrabold text-gray-900 mb-4">
+              Check your email
+            </h1>
+            <p className="text-gray-500 mb-8">
+              Enter the 6-digit code sent to your email.
+            </p>
+            <form onSubmit={handleVerify} className="w-full flex flex-col gap-5">
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <input
+                value={code}
+                placeholder="000000"
+                maxLength={6}
+                inputMode="numeric"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d*$/.test(val) && val.length <= 6) setCode(val);
+                }}
+                className="border border-gray-300 rounded-xl p-4 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#4a7cb9] text-white font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]"
+              >
+                {loading ? <Spinner /> : "Verify Email"}
+              </button>
+            </form>
           </div>
-          <p className="text-[12px] font-bold text-gray-500 tracking-[0.2em] uppercase mb-4 font-[family-name:var(--font-pt-sans)]">
-            {subtitle}
-          </p>
-          <h1 className="text-[40px] font-extrabold text-gray-900 font-[family-name:var(--font-public-sans)] leading-tight tracking-tight">
-            Sign up
-          </h1>
-        </div>
+        ) : (
+          <>
+            <div className="flex flex-col items-center mb-12">
+              <div className="flex items-center gap-3 mb-8">
+                <Image src={logoFrame} alt="Logo" width={28} height={28} />
+                <Image src={logoText} alt="Tally" width={75} height={26} />
+              </div>
+              <p className="text-[12px] font-bold text-gray-500 tracking-[0.2em] uppercase mb-4 font-[family-name:var(--font-pt-sans)]">
+                {subtitle}
+              </p>
+              <h1 className="text-[40px] font-extrabold text-gray-900 leading-tight">
+                Sign up
+              </h1>
+            </div>
 
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              name="firstName"
-              type="text"
-              placeholder="First name"
-              onChange={handleChange}
-              className="font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-              required
-            />
-            <input
-              name="lastName"
-              type="text"
-              placeholder="Last name"
-              onChange={handleChange}
-              className="font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-              required
-            />
-          </div>
-          <input
-            name="email"
-            type="email"
-            placeholder="Tufts email"
-            onChange={handleChange}
-            className="w-full font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-            required
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            onChange={handleChange}
-            className="w-full font-[family-name:var(--font-pt-sans)] placeholder:text-[18px] border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-            required
-          />
+            <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm text-left">
+                  {error}
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={!isFormValid}
-            style={{ backgroundColor: isFormValid ? '#4a7cb9' : '#EAEAEA' }}
-            className={`w-full ${isFormValid ? 'text-white' : 'text-gray-400'} font-bold py-4 rounded-xl transition-all mt-3 shadow-md text-[14px] font-[family-name:var(--font-pt-sans)]`}
-          >
-            Next
-          </button>
-        </form>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  name="firstName"
+                  placeholder="First name"
+                  onChange={handleChange}
+                  className="border border-gray-300 rounded-xl p-3"
+                  required
+                />
+                <input
+                  name="lastName"
+                  placeholder="Last name"
+                  onChange={handleChange}
+                  className="border border-gray-300 rounded-xl p-3"
+                  required
+                />
+              </div>
+              <input
+                name="email"
+                type="email"
+                placeholder="Tufts email"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
+              {/* 3. New Confirm Password input */}
+              <input
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm password"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
 
-        <div className="mt-12 text-center text-[14px] text-gray-500 flex flex-col gap-3 font-[family-name:var(--font-pt-sans)]">
-          <p>Already have an account? <a href="/login" className="text-blue-500 font-semibold hover:underline">Log in</a></p>
-          {isTCU ? (
-            <p>Not TCU Treasury? <a href="/signup" className="text-blue-500 font-semibold hover:underline">Student sign up</a></p>
-          ) : (
-            <p>TCU Treasury: <a href="/tcu-login" className="text-blue-500 font-semibold hover:underline">Log in</a></p>
-          )}
-        </div>
+              <button
+                type="submit"
+                disabled={!isFormValid || loading}
+                style={{
+                  backgroundColor: !isFormValid ? "#EAEAEA" : "#4a7cb9",
+                }}
+                className={`w-full ${
+                  isFormValid ? "text-white" : "text-gray-400"
+                } font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]`}
+              >
+                {loading ? <Spinner /> : "Next"}
+              </button>
+            </form>
+
+            <p className="mt-8 text-gray-500 text-sm">
+              Already have an account?{" "}
+              <Link
+                href="/pages/login"
+                className="text-[#4a7cb9] font-bold hover:underline"
+              >
+                Log in
+              </Link>
+            </p>
+          </>
+        )}
       </div>
+      <div id="clerk-captcha"></div>
     </div>
   );
 }

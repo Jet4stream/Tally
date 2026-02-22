@@ -123,7 +123,7 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
         <div className="mt-12 text-center text-[12px] text-gray-900 leading-relaxed font-[family-name:var(--font-pt-sans)] flex flex-col gap-4">
           {isTCU ? (
             <p>
-              Not TCU Treasury? <Link href="/login" className="text-blue-500 font-semibold hover:underline">Student log in</Link>
+              Not TCU Treasury? <Link href="/pages/login" className="text-blue-500 font-semibold hover:underline">Student log in</Link>
             </p>
           ) : (
             <>
@@ -133,7 +133,7 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
                 <p className="font-normal text-gray-600">Club treasurers: Contact TCU Treasury.</p>
               </div>
               <p className="mt-2 text-gray-600">
-                TCU Treasury: <Link href="/tcu-login" className="text-blue-500 font-semibold hover:underline">Log in</Link>
+                TCU Treasury: <Link href="/pages/tcu-login" className="text-blue-500 font-semibold hover:underline">Log in</Link>
               </p>
             </>
           )}
