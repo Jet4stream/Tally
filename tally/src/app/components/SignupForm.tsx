@@ -27,6 +27,7 @@ export default function SignupForm({
     lastName: "",
     email: "",
     password: "",
+    confirmPassword: "", // 1. Added confirmPassword state
   });
   const [error, setError] = useState("");
 
@@ -39,6 +40,13 @@ export default function SignupForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !isFormValid) return;
+
+    // 2. Client-side check: Do passwords match?
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -51,11 +59,9 @@ export default function SignupForm({
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
       setVerifying(true);
     } catch (err: any) {
       const clerkError = err.errors?.[0];
-
       if (clerkError?.code === "form_identifier_exists") {
         setError("This email is already in use.");
       } else if (clerkError?.code === "session_exists") {
@@ -63,13 +69,13 @@ export default function SignupForm({
       } else {
         setError(clerkError?.message || "Something went wrong.");
       }
-
       setVerifying(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // ... handleVerify and Spinner remain the same ...
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
@@ -112,10 +118,7 @@ export default function SignupForm({
             <p className="text-gray-500 mb-8">
               Enter the 6-digit code sent to your email.
             </p>
-            <form
-              onSubmit={handleVerify}
-              className="w-full flex flex-col gap-5"
-            >
+            <form onSubmit={handleVerify} className="w-full flex flex-col gap-5">
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <input
                 value={code}
@@ -192,6 +195,15 @@ export default function SignupForm({
                 className="border border-gray-300 rounded-xl p-3"
                 required
               />
+              {/* 3. New Confirm Password input */}
+              <input
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm password"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
 
               <button
                 type="submit"
@@ -199,7 +211,9 @@ export default function SignupForm({
                 style={{
                   backgroundColor: !isFormValid ? "#EAEAEA" : "#4a7cb9",
                 }}
-                className={`w-full ${isFormValid ? "text-white" : "text-gray-400"} font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]`}
+                className={`w-full ${
+                  isFormValid ? "text-white" : "text-gray-400"
+                } font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]`}
               >
                 {loading ? <Spinner /> : "Next"}
               </button>
