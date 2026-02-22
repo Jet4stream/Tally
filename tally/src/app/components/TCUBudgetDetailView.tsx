@@ -23,9 +23,9 @@ export default function TCUBudgetDetailView({ club, onBack }: { club: any, onBac
               Dept ID: {club.id.slice(0, 8).toUpperCase()}
             </p>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
              <Image src={pencilIcon} alt="Edit" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          </button> */}
         </div>
       </div>
 
