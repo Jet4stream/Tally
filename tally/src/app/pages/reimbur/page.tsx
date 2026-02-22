@@ -13,9 +13,8 @@ import { useTreasurerStore } from "@/store/treasurerStore";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
 
-import { createReimbursement } from "@/lib/api/reimbursement";
-import { getClubById } from "@/lib/api/club"
-import Link from "next/link";
+import { fillReimbursementPDF } from "@/lib/fillReimbursementPDF";
+import { getClubById } from "@/lib/api/club";
 
 const STEPS = [
   "Choose Club Member",
@@ -27,8 +26,6 @@ const STEPS = [
 
 export default function RequestReimbursement() {
   const { user, isLoaded } = useUser();
-
-  //use router for navigation
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -55,7 +52,9 @@ export default function RequestReimbursement() {
 
   // step 2/3/5
   const [expenses, setExpenses] = useState(
-    Array(5).fill(null).map(() => ({ description: "", amount: "" }))
+    Array(5)
+      .fill(null)
+      .map(() => ({ description: "", amount: "" }))
   );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [signature, setSignature] = useState({ name: "", date: "" });
@@ -120,7 +119,7 @@ export default function RequestReimbursement() {
   // ---------- fetch budget items for selected section (cached) ----------
   useEffect(() => {
     if (!selectedSectionId) return;
-    if (budgetItemsBySection[selectedSectionId]) return; // already cached
+    if (budgetItemsBySection[selectedSectionId]) return;
 
     let cancelled = false;
 
@@ -149,12 +148,16 @@ export default function RequestReimbursement() {
     };
   }, [selectedSectionId, budgetItemsBySection]);
 
-  
-
   // ---------- handlers ----------
   const handleExpenseChange = (i: number, field: "description" | "amount", value: string) => {
     setExpenses((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
   };
+
+  const filledExpenses = expenses.filter((e) => e.description || e.amount);
+  const expenseTotal = expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+  const canSubmit = signature.name && signature.date;
+  const [submitHover, setSubmitHover] = useState(false);
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -167,32 +170,75 @@ export default function RequestReimbursement() {
       setSubmitting(true);
       setSubmitError(null);
 
-      const clubName = (await getClubById(treasurerClubId)).name;
-
+      const club = await getClubById(treasurerClubId);
       const amountCents = Math.round(expenseTotal * 100);
 
-      const descriptionPayload = {
+      // Generate PDF
+      const pdfBytes = await fillReimbursementPDF({
+        payTo: `${selectedMember?.firstName} ${selectedMember?.lastName}`,
+        studentId: selectedMember?.studentId ?? "",
+        email: selectedMember?.email ?? "",
+        phone: selectedMember?.phoneNumber ?? "",
+        permAddress: selectedMember?.permAddress1 ?? "",
+        permCityStateZip: [selectedMember?.permCity, selectedMember?.permState, selectedMember?.permZip].filter(Boolean).join(", "),
+        localAddress: selectedMember?.tempAddress1 ?? "",
+        localCityStateZip: [selectedMember?.tempCity, selectedMember?.tempState, selectedMember?.tempZip].filter(Boolean).join(", "),
+        amount: `$${expenseTotal.toFixed(2)}`,
         expenses: filledExpenses,
-        signature,
-      };
-
-      const reimbursement = await createReimbursement({
-        clubId: treasurerClubId,
-        clubName,
-        payeeUserId: selectedMemberId,
-        budgetItemId: selectedItemId,
-        amountCents,
-        description: JSON.stringify(descriptionPayload),
-        receiptFile: uploadedFile, // your receipt
+        date: signature.date,
+        club: club.name,
+        signature: signature.name,
+        eventBudgetLine: `${selectedSection?.title} — ${selectedItem?.label}`,
       });
 
-      // success UI: move to success page or reset form
-      console.log("Created reimbursement:", reimbursement);
+      // Build FormData for the API
+      const formData = new FormData();
+      formData.append("clubId", treasurerClubId);
+      formData.append("clubName", club.name);
+      formData.append("payeeUserId", selectedMemberId);
+      formData.append("budgetItemId", selectedItemId);
+      formData.append("amountCents", String(amountCents));
+      formData.append(
+        "description",
+        JSON.stringify({
+          expenses: filledExpenses,
+          signature,
+          eventBudgetLine: `${selectedSection?.title} — ${selectedItem?.label}`,
+        })
+      );
+
+      if (uploadedFile) {
+        formData.append("receipt", uploadedFile);
+      }
+
+      // this code takes the pdf bytes and puts them in a blob that we append
+      // to the form data for upload to supabase
+      const pdfBlob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
+      formData.append("generatedPdf", pdfBlob, "reimbursement-form.pdf");
+
+      const res = await fetch("/api/reimbursements", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to submit");
+      }
+
+      // Download generated PDF for the user
+      const downloadBlob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
+      const downloadUrl = URL.createObjectURL(downloadBlob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `reimbursement-${selectedMember?.lastName ?? "form"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(downloadUrl);
 
       router.push("/");
     } catch (e: any) {
       console.error(e);
-      setSubmitError(e?.response?.data?.error ?? "Failed to submit reimbursement");
+      setSubmitError(e?.message ?? "Failed to submit reimbursement");
     } finally {
       setSubmitting(false);
     }
@@ -224,9 +270,7 @@ export default function RequestReimbursement() {
     <div style={s.shell}>
       <NavBar />
 
-      {/* scroll container */}
       <div style={s.scroll}>
-
         <div style={s.content}>
           <div style={s.card}>
             <div style={s.cardHeader}>
@@ -264,9 +308,14 @@ export default function RequestReimbursement() {
 
               return (
                 <div key={label}>
-                  {/* top divider for active steps except first */}
                   {isActive && i > 0 && (
-                    <div style={{ borderTop: "1px solid #EAEAEA", marginBottom: 16, marginLeft: 19 }} />
+                    <div
+                      style={{
+                        borderTop: "1px solid #EAEAEA",
+                        marginBottom: 16,
+                        marginLeft: 19,
+                      }}
+                    />
                   )}
 
                   <div
@@ -299,7 +348,6 @@ export default function RequestReimbursement() {
                       </span>
                     </div>
 
-                    {/* done summary */}
                     {isDone && (
                       <div style={s.doneSummary}>
                         {i === 0 && selectedMember && (
@@ -320,7 +368,9 @@ export default function RequestReimbursement() {
                                   marginBottom: 3,
                                 }}
                               >
-                                <span style={{ color: "#3172AE", fontWeight: 700 }}>{e.description}</span>
+                                <span style={{ color: "#3172AE", fontWeight: 700 }}>
+                                  {e.description}
+                                </span>
                                 <span style={{ color: "#3172AE", fontWeight: 700 }}>
                                   {e.amount ? `$${parseFloat(e.amount).toFixed(2)}` : ""}
                                 </span>
@@ -342,7 +392,9 @@ export default function RequestReimbursement() {
                         )}
 
                         {i === 2 && uploadedFile && (
-                          <p style={{ ...s.summaryBlue, fontWeight: 700 }}>📄 {uploadedFile.name}</p>
+                          <p style={{ ...s.summaryBlue, fontWeight: 700 }}>
+                            📄 {uploadedFile.name}
+                          </p>
                         )}
 
                         {i === 3 && selectedSection && selectedItem && (
@@ -353,7 +405,6 @@ export default function RequestReimbursement() {
                       </div>
                     )}
 
-                    {/* active content */}
                     {isActive && (
                       <div style={s.stepContent}>
                         {i === 0 && (
@@ -365,11 +416,17 @@ export default function RequestReimbursement() {
                         )}
 
                         {i === 1 && (
-                          <StepInputExpenses expenses={expenses} onExpenseChange={handleExpenseChange} />
+                          <StepInputExpenses
+                            expenses={expenses}
+                            onExpenseChange={handleExpenseChange}
+                          />
                         )}
 
                         {i === 2 && (
-                          <StepUploadReceipt uploadedFile={uploadedFile} onUpload={setUploadedFile} />
+                          <StepUploadReceipt
+                            uploadedFile={uploadedFile}
+                            onUpload={setUploadedFile}
+                          />
                         )}
 
                         {i === 3 && (
@@ -386,9 +443,10 @@ export default function RequestReimbursement() {
                           />
                         )}
 
-                        {i === 4 && <StepReviewSign signature={signature} setSignature={setSignature} />}
+                        {i === 4 && (
+                          <StepReviewSign signature={signature} setSignature={setSignature} />
+                        )}
 
-                        {/* nav */}
                         <div style={s.navRow}>
                           <div style={{ flex: 1 }} />
                           {currentStep > 0 && (
@@ -407,8 +465,10 @@ export default function RequestReimbursement() {
                                 ...s.nextBtn,
                                 opacity: canSubmit ? 1 : 0.5,
                                 cursor: canSubmit ? "pointer" : "not-allowed",
-                                background: submitHover && canSubmit ? "#fff" : "#3172AE",
-                                color: submitHover && canSubmit ? "#3172AE" : "#fff",
+                                background:
+                                  submitHover && canSubmit ? "#fff" : "#3172AE",
+                                color:
+                                  submitHover && canSubmit ? "#3172AE" : "#fff",
                               }}
                               disabled={!canSubmit || submitting}
                               onClick={handleSubmit}
@@ -420,14 +480,22 @@ export default function RequestReimbursement() {
                           )}
                         </div>
 
-                        {submitError && <p style={{ color: "crimson", marginTop: 8 }}>{submitError}</p>}
+                        {submitError && (
+                          <p style={{ color: "crimson", marginTop: 8 }}>{submitError}</p>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* bottom divider for active step except last */}
                   {isActive && i < STEPS.length - 1 && (
-                    <div style={{ borderTop: "1px solid #EAEAEA", marginTop: 16, marginBottom: 16, marginLeft: 19 }} />
+                    <div
+                      style={{
+                        borderTop: "1px solid #EAEAEA",
+                        marginTop: 16,
+                        marginBottom: 16,
+                        marginLeft: 19,
+                      }}
+                    />
                   )}
                 </div>
               );
@@ -475,7 +543,6 @@ function StepChooseMember({
         />
       </div>
 
-      {/* ✅ show selected person's name */}
       {selectedUser && !search && (
         <p style={{ color: "#3172AE", fontWeight: 600, fontSize: 13, margin: "4px 0 0" }}>
           {selectedUser.firstName} {selectedUser.lastName}
@@ -483,7 +550,14 @@ function StepChooseMember({
       )}
 
       {search.trim() && (
-        <div style={{ marginTop: 4, border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+        <div
+          style={{
+            marginTop: 4,
+            border: "1px solid #e5e7eb",
+            borderRadius: 6,
+            overflow: "hidden",
+          }}
+        >
           {filtered.length === 0 ? (
             <p style={{ color: "#9ca3af", fontSize: 13, padding: "8px 12px", margin: 0 }}>
               No members found.
@@ -524,6 +598,7 @@ function StepChooseMember({
     </div>
   );
 }
+
 // ----- Step 2: expenses -----
 function StepInputExpenses({
   expenses,
@@ -639,10 +714,18 @@ function StepUploadReceipt({
             padding: "8px 12px",
           }}
         >
-          <span style={{ color: "#3172AE", fontSize: 13, fontWeight: 700 }}>📄 {uploadedFile.name}</span>
+          <span style={{ color: "#3172AE", fontSize: 13, fontWeight: 700 }}>
+            📄 {uploadedFile.name}
+          </span>
           <button
             onClick={() => onUpload(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 14 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#9ca3af",
+              fontSize: 14,
+            }}
           >
             ✕
           </button>
@@ -726,7 +809,6 @@ function StepChooseBudget({
         </option>
         {budgetSections.map((section) => (
           <option key={section.id} value={section.id}>
-            {/* IMPORTANT: adjust display field */}
             {section.title}
           </option>
         ))}
@@ -751,7 +833,6 @@ function StepChooseBudget({
         </option>
         {budgetItems.map((item) => (
           <option key={item.id} value={item.id}>
-            {/* IMPORTANT: adjust display field */}
             {item.label}
           </option>
         ))}
@@ -799,17 +880,6 @@ const s = {
     flex: 1,
     overflowY: "auto" as const,
     WebkitOverflowScrolling: "touch" as const,
-  },
-  content: {
-    paddingTop: 130,
-    paddingBottom: 48,
-    paddingLeft: 32,
-    paddingRight: 32,
-  },
-  page: {
-    minHeight: "100vh",
-    background: "#f9fafb",
-    overflowY: "auto",
   },
   content: {
     paddingTop: 130,
