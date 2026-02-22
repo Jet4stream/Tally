@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link"; // Import Link for navigation
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
 
@@ -21,11 +21,10 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
   });
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (signUp?.status === "missing_requirements") {
-      setVerifying(true);
-    }
-  }, [signUp]);
+  /**
+   * REMOVED: The useEffect that was forcing setVerifying(true).
+   * This was likely the reason the screen was switching even when an error occurred.
+   */
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,14 +36,13 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
     e.preventDefault();
     if (!isLoaded || !isFormValid) return;
     setLoading(true);
+    setError(""); // Clear error at start of attempt
 
     try {
-      if (signUp.status === "missing_requirements") {
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-        setVerifying(true);
-        return;
-      }
-
+      /**
+       * 1. Create the signup attempt. 
+       * This is where Clerk checks for existing emails and breached passwords.
+       */
       await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
@@ -52,17 +50,29 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
         lastName: formData.lastName,
       });
 
+      /**
+       * 2. Prepare verification.
+       * If step 1 fails, the code will jump to the catch block and never reach here.
+       */
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      
+      // 3. ONLY switch the UI if both above steps were successful
       setVerifying(true);
-      setError("");
+      
     } catch (err: any) {
-      if (err.errors?.[0]?.code === "form_identifier_exists") {
+      const clerkError = err.errors?.[0];
+      
+      if (clerkError?.code === "form_identifier_exists") {
         setError("This email is already in use.");
-      } else if (err.errors?.[0]?.code === "session_exists") {
+      } else if (clerkError?.code === "session_exists") {
         router.push("/pages/signup/complete");
       } else {
-        setError(err.errors?.[0]?.message || "Something went wrong.");
+        // This catches the "password breach" error message directly from Clerk
+        setError(clerkError?.message || "Something went wrong.");
       }
+      
+      // Explicitly ensure we stay on the signup screen
+      setVerifying(false);
     } finally {
       setLoading(false);
     }
@@ -137,7 +147,13 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
             </div>
 
             <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {/* Error display is now inside the form for better visibility */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm text-left">
+                  {error}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <input name="firstName" placeholder="First name" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
                 <input name="lastName" placeholder="Last name" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
@@ -155,7 +171,6 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
               </button>
             </form>
 
-            {/* Added: Redirect link to Login page */}
             <p className="mt-8 text-gray-500 text-sm">
               Already have an account?{" "}
               <Link href="/pages/login" className="text-[#4a7cb9] font-bold hover:underline">
