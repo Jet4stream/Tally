@@ -74,7 +74,7 @@ export default function NavBar({ title }: NavBarProps) {
   }, [treasurerClubId]);
 
   return (
-    <div className="fixed top-0 inset-x-0 h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
+    <div className="h-[64px] sm:h-[80px] lg:h-[100px] w-full bg-[#3172AE] z-50 flex justify-between items-center px-4 sm:px-6 lg:px-[32px]">
       <div className="flex flex-col gap-0 sm:gap-[2px] min-w-0">
         <div className="flex items-center gap-[8px]">
           <Image
@@ -105,7 +105,7 @@ export default function NavBar({ title }: NavBarProps) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full focus:outline-none focus:ring-2 focus:ring-white/60"
+          className="rounded-full focus:outline-none focus:ring-2 focus:ring-white/60 cursor-pointer"
           aria-haspopup="menu"
           aria-expanded={open}
         >
@@ -125,7 +125,7 @@ export default function NavBar({ title }: NavBarProps) {
           >
             <button
               onClick={handleEditProfile}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-black hover:bg-gray-50"
               role="menuitem"
             >
               Edit Profile
@@ -135,7 +135,7 @@ export default function NavBar({ title }: NavBarProps) {
 
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)]text-red-600 hover:bg-red-50"
               role="menuitem"
             >
               Logout

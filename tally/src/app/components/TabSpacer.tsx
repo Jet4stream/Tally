@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import DashboardContent from "./DashboardContent";
+import DashboardContent from "./TCUDashboard";
 import BudgetSheet from "./TreasurerBudgetSheet";
 
 

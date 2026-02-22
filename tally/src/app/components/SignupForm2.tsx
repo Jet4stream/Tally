@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation"; // Added useSearchParams
 import { useUser } from "@clerk/nextjs";
 import { createUser } from "../../lib/api/user";
-import { GlobalRole } from "@prisma/client";
+import { GlobalRole, ClubInvite } from "@prisma/client";
+import { getClubInvitesByEmail } from "@/lib/api/clubInvite";
 
 export default function CompleteAccountForm() {
   const { isLoaded, user } = useUser();
@@ -49,6 +50,7 @@ export default function CompleteAccountForm() {
 
     setLoading(true);
     try {
+      const normalizedEmail = (user.primaryEmailAddress?.emailAddress || "").trim().toLowerCase();
       await createUser({
         id: user.id,
         email: user.primaryEmailAddress?.emailAddress || "",
@@ -66,6 +68,23 @@ export default function CompleteAccountForm() {
         tempState: formData.lState,
         tempZip: formData.lZip,
       });
+      if (isTCU) {
+        router.push("/pages/tcu");
+      }
+
+       let invites: ClubInvite[] = [];
+      try {
+        invites = await getClubInvitesByEmail(normalizedEmail);
+      } catch (e) {
+        // if invite lookup fails, don't block account completion
+        console.error("Invite lookup failed:", e);
+        invites = [];
+      }
+
+      if ((invites ?? []).length > 0) {
+        router.push("/pages/clubMember");
+        return;
+      }
 
       router.push("/");
     } catch (err: any) {

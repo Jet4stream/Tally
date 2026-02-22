@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
-import DashboardContent from "./DashboardContent";
+import DashboardContent from "./TCUDashboard";
 import ClubBudgetList from "./ClubBudgetList";
 import TCUBudgetDetailView from "./TCUBudgetDetailView";
 
 export default function TCUTabSpacer() {
-  const [activeTab, setActiveTab] = useState("budgets");
+  const [activeTab, setActiveTab] = useState("reimbursements");
   const [selectedClub, setSelectedClub] = useState<any>(null);
 
   return (

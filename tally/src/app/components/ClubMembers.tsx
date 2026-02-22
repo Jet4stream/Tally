@@ -95,7 +95,6 @@ export default function ClubMembers() {
     }
   }
 
-  // ✅ render gating without breaking hook order
   const gate = loadingTreasurer ? (
     <div className="p-6 text-gray-500">Loading...</div>
   ) : !treasurerClubId ? (
