@@ -10,20 +10,31 @@ type CreateReimbursementInput = Omit<
   "id" | "createdAt" | "updatedAt"
 >;
 
-export const createReimbursement = async (
-  payload: Partial<CreateReimbursementInput> & {
-    clubId: string;
-    clubName: string;
-    createdUserId: string;
-    payeeUserId: string;
-    amountCents: number;
-    description: string;
-  }
-): Promise<Reimbursement> => {
-  const res = await axios.post<ApiResponse<Reimbursement>>("/api/reimbursements", payload);
+export const createReimbursement = async (payload: {
+  clubId: string;
+  clubName: string;
+  payeeUserId: string;
+  budgetItemId?: string | null;
+  amountCents: number;
+  description: string;
+  receiptFile?: File | null;
+}): Promise<Reimbursement> => {
+  const fd = new FormData();
+  fd.append("clubId", payload.clubId);
+  fd.append("clubName", payload.clubName);
+  fd.append("payeeUserId", payload.payeeUserId);
+  fd.append("amountCents", String(payload.amountCents));
+  fd.append("description", payload.description);
+
+  if (payload.budgetItemId) fd.append("budgetItemId", payload.budgetItemId);
+  if (payload.receiptFile) fd.append("receipt", payload.receiptFile);
+
+  const res = await axios.post<ApiResponse<Reimbursement>>("/api/reimbursements", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
   return res.data.data;
 };
-
 export const getReimbursementById = async (id: string): Promise<Reimbursement> => {
   const res = await axios.get<ApiResponse<Reimbursement>>(
     `/api/reimbursements?id=${encodeURIComponent(id)}`

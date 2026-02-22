@@ -134,6 +134,8 @@ model Reimbursement {
   generatedFormPdfUrl  String?
   packetPdfUrl         String?
 
+  budgetItem       BudgetItem? @relation(fields: [budgetItemId], references: [id], onDelete: SetNull)
+
   club             Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
   createdBy        User @relation("CreatedBy", fields: [createdUserId], references: [id], onDelete: Cascade)
   payee            User @relation("Payee", fields: [payeeUserId], references: [id], onDelete: Cascade)
@@ -173,6 +175,7 @@ model BudgetItem {
   updatedAt      DateTime @updatedAt
 
   section        BudgetSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-
+  reimbursements Reimbursement[]
+  
   @@index([sectionId])
 }

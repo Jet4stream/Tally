@@ -17,7 +17,7 @@ export const createReimbursementSchema = z.object({
   createdUserId: z.string().min(1),
   payeeUserId: z.string().min(1),
 
-  budgetLineItemId: z.string().uuid().optional().nullable(),
+  budgetItemId: z.string().uuid().optional().nullable(),
 
   amountCents: z.number().int().positive(),
   description: z.string().min(1),
@@ -52,7 +52,7 @@ export async function postReimbursementController(input: CreateReimbursementInpu
       createdUserId: data.createdUserId,
       payeeUserId: data.payeeUserId,
 
-      budgetItemId: data.budgetLineItemId ?? null,
+      budgetItemId: data.budgetItemId ?? null,
 
       amountCents: data.amountCents,
       description: data.description,
@@ -97,6 +97,14 @@ export async function getReimbursementsByPayeeUserIdController(
 export async function getReimbursementsByClubIdController(clubId: string) {
   return prisma.reimbursement.findMany({
     where: { clubId },
+    include: {
+        payee: true,
+        budgetItemId: {
+        include: {
+          section: true, // <-- or `budgetSection` depending on your schema
+        },
+    	},
+		},
     orderBy: { submittedAt: "desc" },
   });
 }

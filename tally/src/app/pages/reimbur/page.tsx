@@ -12,7 +12,9 @@ import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
 
-
+import { createReimbursement } from "@/lib/api/reimbursement";
+import { getClubById } from "@/lib/api/club"
+import Link from "next/link";
 
 const STEPS = [
   "Choose Club Member",
@@ -39,6 +41,9 @@ export default function RequestReimbursement() {
   const [budgetSections, setBudgetSections] = useState<BudgetSection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // cache: sectionId -> items
   const [budgetItemsBySection, setBudgetItemsBySection] = useState<Record<string, BudgetItem[]>>(
@@ -171,6 +176,48 @@ export default function RequestReimbursement() {
     setExpenses((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
   };
 
+  const handleSubmit = async () => {
+    if (!user) return;
+    if (!treasurerClubId) return;
+    if (!selectedMemberId) return;
+    if (!selectedItemId) return;
+    if (!canSubmit) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitError(null);
+
+      const clubName = (await getClubById(treasurerClubId)).name;
+
+      const amountCents = Math.round(expenseTotal * 100);
+
+      const descriptionPayload = {
+        expenses: filledExpenses,
+        signature,
+      };
+
+      const reimbursement = await createReimbursement({
+        clubId: treasurerClubId,
+        clubName,
+        payeeUserId: selectedMemberId,
+        budgetItemId: selectedItemId,
+        amountCents,
+        description: JSON.stringify(descriptionPayload),
+        receiptFile: uploadedFile, // your receipt
+      });
+
+      // success UI: move to success page or reset form
+      console.log("Created reimbursement:", reimbursement);
+
+      router.push("/");
+    } catch (e: any) {
+      console.error(e);
+      setSubmitError(e?.response?.data?.error ?? "Failed to submit reimbursement");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
@@ -181,206 +228,218 @@ export default function RequestReimbursement() {
   const [submitHover, setSubmitHover] = useState(false);
 
   return (
-    <div style={s.page}>
+    <div style={s.shell}>
       <NavBar />
 
-      <div style={s.content}>
-        <div style={s.card}>
-          <div style={s.cardHeader}>
-            <div style={{ position: "relative" }}>
-              <h2 style={s.cardTitle}>Request a Reimbursement</h2>
-              <button
-                onClick={() => router.push("/")}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: 36,
-                  height: 36,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 24,
-                  color: "#000",
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                }}
-              >
-                ✕
-              </button>
+      {/* scroll container */}
+      <div style={s.scroll}>
+
+        <div style={s.content}>
+          <div style={s.card}>
+            <div style={s.cardHeader}>
+              <div style={{ position: "relative" }}>
+                <h2 style={s.cardTitle}>Request a Reimbursement</h2>
+                <button
+                  onClick={() => router.push("/")}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: 36,
+                    height: 36,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 24,
+                    color: "#000",
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-          </div>
 
-          {STEPS.map((label, i) => {
-  const isActive = i === currentStep;
-  const isDone = i < currentStep;
-  const isFuture = i > currentStep;
+            {STEPS.map((label, i) => {
+              const isActive = i === currentStep;
+              const isDone = i < currentStep;
+              const isFuture = i > currentStep;
 
-  return (
-    <div key={i}>
-      {isActive && i > 0 && (
-        <div style={{ borderTop: "1px solid #EAEAEA", marginBottom: 16, marginLeft: 19 }} />
-      )}
+              return (
+                <div key={label}>
+                  {/* top divider for active steps except first */}
+                  {isActive && i > 0 && (
+                    <div style={{ borderTop: "1px solid #EAEAEA", marginBottom: 16, marginLeft: 19 }} />
+                  )}
 
-      <div
-        style={{
-          ...s.stepBlock,
-          borderLeftColor: isActive ? "#3172AE" : "#e5e7eb",
-          opacity: isFuture ? 0.4 : 1,
-          marginBottom: isActive ? 0 : 32,
-        }}
-      >
-        <div style={s.stepLabelRow}>
-          <span
-            style={{
-              ...s.stepBubble,
-              background: isActive ? "#3172AE" : isDone ? "#8D8B8B" : "#e5e7eb",
-              color: isActive || isDone ? "#fff" : "#9ca3af",
-            }}
-          >
-            {i + 1}
-          </span>
-          <span
-            style={{
-              ...s.stepLabelText,
-              color: isActive ? "#111" : isDone ? "#8D8B8B" : "#9ca3af",
-              fontWeight: isActive ? 600 : 500,
-              fontSize: isActive ? 24 : 16,
-            }}
-          >
-            {label}
-          </span>
-        </div>
-
-        {isDone && (
-          <div style={s.doneSummary}>
-            {i === 0 && selectedMember && (
-              <p style={s.summaryBlue}>
-                {selectedMember.firstName} {selectedMember.lastName}
-              </p>
-            )}
-
-            {i === 1 && filledExpenses.length > 0 && (
-              <div>
-                {filledExpenses.map((e, idx) => (
                   <div
-                    key={idx}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 13,
-                      marginBottom: 3,
+                      ...s.stepBlock,
+                      borderLeftColor: isActive ? "#3172AE" : "#e5e7eb",
+                      opacity: isFuture ? 0.4 : 1,
+                      marginBottom: isActive ? 0 : 32,
                     }}
                   >
-                    <span style={{ color: "#3172AE", fontWeight: 700 }}>{e.description}</span>
-                    <span style={{ color: "#3172AE", fontWeight: 700 }}>
-                      {e.amount ? `$${parseFloat(e.amount).toFixed(2)}` : ""}
-                    </span>
+                    <div style={s.stepLabelRow}>
+                      <span
+                        style={{
+                          ...s.stepBubble,
+                          background: isActive ? "#3172AE" : isDone ? "#8D8B8B" : "#e5e7eb",
+                          color: isActive || isDone ? "#fff" : "#9ca3af",
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span
+                        style={{
+                          ...s.stepLabelText,
+                          color: isActive ? "#111" : isDone ? "#8D8B8B" : "#9ca3af",
+                          fontWeight: isActive ? 600 : 500,
+                          fontSize: isActive ? 24 : 16,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </div>
+
+                    {/* done summary */}
+                    {isDone && (
+                      <div style={s.doneSummary}>
+                        {i === 0 && selectedMember && (
+                          <p style={s.summaryBlue}>
+                            {selectedMember.firstName} {selectedMember.lastName}
+                          </p>
+                        )}
+
+                        {i === 1 && filledExpenses.length > 0 && (
+                          <div>
+                            {filledExpenses.map((e, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  fontSize: 13,
+                                  marginBottom: 3,
+                                }}
+                              >
+                                <span style={{ color: "#3172AE", fontWeight: 700 }}>{e.description}</span>
+                                <span style={{ color: "#3172AE", fontWeight: 700 }}>
+                                  {e.amount ? `$${parseFloat(e.amount).toFixed(2)}` : ""}
+                                </span>
+                              </div>
+                            ))}
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                fontSize: 13,
+                                color: "#3172AE",
+                                fontWeight: 700,
+                                marginTop: 4,
+                              }}
+                            >
+                              ${expenseTotal.toFixed(2)}
+                            </div>
+                          </div>
+                        )}
+
+                        {i === 2 && uploadedFile && (
+                          <p style={{ ...s.summaryBlue, fontWeight: 700 }}>📄 {uploadedFile.name}</p>
+                        )}
+
+                        {i === 3 && selectedSection && selectedItem && (
+                          <p style={s.summaryBlue}>
+                            {selectedSection.title} — {selectedItem.label}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* active content */}
+                    {isActive && (
+                      <div style={s.stepContent}>
+                        {i === 0 && (
+                          <StepChooseMember
+                            members={clubMembers}
+                            selectedMemberId={selectedMemberId}
+                            onSelectMemberId={setSelectedMemberId}
+                          />
+                        )}
+
+                        {i === 1 && (
+                          <StepInputExpenses expenses={expenses} onExpenseChange={handleExpenseChange} />
+                        )}
+
+                        {i === 2 && (
+                          <StepUploadReceipt uploadedFile={uploadedFile} onUpload={setUploadedFile} />
+                        )}
+
+                        {i === 3 && (
+                          <StepChooseBudget
+                            budgetSections={budgetSections}
+                            selectedSectionId={selectedSectionId}
+                            setSelectedSectionId={(id) => {
+                              setSelectedSectionId(id);
+                              setSelectedItemId(null);
+                            }}
+                            budgetItems={budgetItems}
+                            selectedItemId={selectedItemId}
+                            setSelectedItemId={setSelectedItemId}
+                          />
+                        )}
+
+                        {i === 4 && <StepReviewSign signature={signature} setSignature={setSignature} />}
+
+                        {/* nav */}
+                        <div style={s.navRow}>
+                          <div style={{ flex: 1 }} />
+                          {currentStep > 0 && (
+                            <button style={s.backBtn} onClick={goBack}>
+                              ← Back
+                            </button>
+                          )}
+
+                          {currentStep < STEPS.length - 1 ? (
+                            <button style={s.nextBtn} onClick={goNext}>
+                              Next Step
+                            </button>
+                          ) : (
+                            <button
+                              style={{
+                                ...s.nextBtn,
+                                opacity: canSubmit ? 1 : 0.5,
+                                cursor: canSubmit ? "pointer" : "not-allowed",
+                                background: submitHover && canSubmit ? "#fff" : "#3172AE",
+                                color: submitHover && canSubmit ? "#3172AE" : "#fff",
+                              }}
+                              disabled={!canSubmit || submitting}
+                              onClick={handleSubmit}
+                              onMouseEnter={() => setSubmitHover(true)}
+                              onMouseLeave={() => setSubmitHover(false)}
+                            >
+                              {submitting ? "Submitting..." : "Submit Reimbursement"}
+                            </button>
+                          )}
+                        </div>
+
+                        {submitError && <p style={{ color: "crimson", marginTop: 8 }}>{submitError}</p>}
+                      </div>
+                    )}
                   </div>
-                ))}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    fontSize: 13,
-                    color: "#3172AE",
-                    fontWeight: 700,
-                    marginTop: 4,
-                  }}
-                >
-                  ${expenseTotal.toFixed(2)}
+
+                  {/* bottom divider for active step except last */}
+                  {isActive && i < STEPS.length - 1 && (
+                    <div style={{ borderTop: "1px solid #EAEAEA", marginTop: 16, marginBottom: 16, marginLeft: 19 }} />
+                  )}
                 </div>
-              </div>
-            )}
-
-            {i === 2 && uploadedFile && (
-              <p style={{ ...s.summaryBlue, fontWeight: 700 }}>📄 {uploadedFile.name}</p>
-            )}
-
-            {i === 3 && selectedSection && selectedItem && (
-              <p style={s.summaryBlue}>
-                {selectedSection.title} —{" "}
-                {selectedItem.label}
-              </p>
-            )}
+              );
+            })}
           </div>
-        )}
-
-        {isActive && (
-          <div style={s.stepContent}>
-            {i === 0 && (
-              <StepChooseMember
-                members={clubMembers}
-                selectedMemberId={selectedMemberId}
-                onSelectMemberId={setSelectedMemberId}
-              />
-            )}
-
-            {i === 1 && (
-              <StepInputExpenses expenses={expenses} onExpenseChange={handleExpenseChange} />
-            )}
-
-            {i === 2 && <StepUploadReceipt uploadedFile={uploadedFile} onUpload={setUploadedFile} />}
-
-            {i === 3 && (
-              <StepChooseBudget
-                budgetSections={budgetSections}
-                selectedSectionId={selectedSectionId}
-                setSelectedSectionId={(id) => {
-                  setSelectedSectionId(id);
-                  setSelectedItemId(null);
-                }}
-                budgetItems={budgetItems}
-                selectedItemId={selectedItemId}
-                setSelectedItemId={setSelectedItemId}
-              />
-            )}
-
-            {i === 4 && <StepReviewSign signature={signature} setSignature={setSignature} />}
-
-            <div style={s.navRow}>
-              <div style={{ flex: 1 }} />
-              {currentStep > 0 && (
-                <button style={s.backBtn} onClick={goBack}>
-                  ← Back
-                </button>
-              )}
-              {currentStep < STEPS.length - 1 ? (
-                <button style={s.nextBtn} onClick={goNext}>
-                  Next Step
-                </button>
-              ) : (
-                <button
-                  style={{
-                    ...s.nextBtn,
-                    background: submitHover && canSubmit ? "#3172AE" : "#fff",
-                    color: submitHover && canSubmit ? "#fff" : "#3172AE",
-                    border: "2px solid #3172AE",
-                    opacity: canSubmit ? 1 : 0.5,
-                    cursor: canSubmit ? "pointer" : "not-allowed",
-                    transition: "background 0.2s, color 0.2s",
-                  }}
-                  disabled={!canSubmit}
-                  onMouseEnter={() => setSubmitHover(true)}
-                  onMouseLeave={() => setSubmitHover(false)}
-                >
-                  Submit Reimbursement
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {isActive && i < STEPS.length - 1 && (
-  <div style={{ borderTop: "1px solid #EAEAEA", marginTop: 16, marginBottom: 16, marginLeft: 19 }} />
-)}
-    </div>
-  );
-})}
         </div>
       </div>
     </div>
@@ -737,6 +796,23 @@ function StepReviewSign({
 
 /* style */
 const s = {
+  shell: {
+    height: "100vh",
+    background: "#f9fafb",
+    display: "flex",
+    flexDirection: "column" as const,
+  },
+  scroll: {
+    flex: 1,
+    overflowY: "auto" as const,
+    WebkitOverflowScrolling: "touch" as const,
+  },
+  content: {
+    paddingTop: 130,
+    paddingBottom: 48,
+    paddingLeft: 32,
+    paddingRight: 32,
+  },
   page: {
     minHeight: "100vh",
     background: "#f9fafb",
