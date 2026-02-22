@@ -120,7 +120,7 @@ export default function NavBar({ title }: NavBarProps) {
 
         {open && (
           <div
-            className="absolute right-0 mt-3 w-48 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+            className="fixed top-[48px] sm:top-[64px] lg:top-[84px] right-4 sm:right-6 lg:right-[32px] w-48 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden z-50"
             role="menu"
           >
             <button
@@ -135,7 +135,7 @@ export default function NavBar({ title }: NavBarProps) {
 
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)]text-red-600 hover:bg-red-50"
+              className="w-full text-left px-4 py-3 text-sm font-medium font-[family-name:var(--font-pt-sans)] text-red-600 hover:bg-red-50"
               role="menuitem"
             >
               Logout

@@ -882,7 +882,7 @@ const s = {
     WebkitOverflowScrolling: "touch" as const,
   },
   content: {
-    paddingTop: 130,
+    paddingTop: 24,
     paddingBottom: 48,
     paddingLeft: 32,
     paddingRight: 32,
