@@ -19,6 +19,7 @@ export default function DashboardContent() {
 
   const { unpaidRows, paidRows } = useMemo(() => {
     const mapped = reimbursements.map((r) => ({
+      id: r.id,
       date: new Date(r.submittedAt).toLocaleDateString("en-US"),
       payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
       owed: `$${(r.amountCents / 100).toFixed(2)}`,
@@ -39,10 +40,9 @@ export default function DashboardContent() {
     };
   }, [reimbursements]);
 
-  useEffect(() => {
+ useEffect(() => {
     if (!isLoaded) return;
     if (!userId) return;
-    console.log(treasurerClubId)
     if (!treasurerClubId) return;
 
     let cancelled = false;
@@ -67,7 +67,7 @@ export default function DashboardContent() {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, userId]);
+  }, [isLoaded, userId, treasurerClubId]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">

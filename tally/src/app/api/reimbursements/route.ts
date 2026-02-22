@@ -6,7 +6,7 @@ import {
   getReimbursementsByPayeeUserIdController,
   getReimbursementsByClubIdController,
   updateReimbursementController,
-  deleteReimbursementController,
+  deleteReimbursementWithFilesController,
 } from "./controller";
 import { supabaseAdmin, SUPABASE_BUCKET } from "@/lib/supabase/admin";
 import { auth } from "@clerk/nextjs/server";
@@ -168,16 +168,21 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+
     if (!id) {
-      return NextResponse.json({ code: "ERROR", message: "Missing id" }, { status: 400 });
+      return NextResponse.json(
+        { code: "ERROR", message: "Missing id" },
+        { status: 400 }
+      );
     }
 
-    const deleted = await deleteReimbursementController(id);
-    return NextResponse.json({ code: "SUCCESS", data: deleted });
+    await deleteReimbursementWithFilesController(id);
+
+    return NextResponse.json({ code: "SUCCESS" });
   } catch (error: any) {
-    console.error("DELETE /api/reimbursements error:", error);
+    console.error("DELETE reimbursement error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete reimbursement" },
+      { code: "ERROR", message: error?.message ?? "Delete failed" },
       { status: 500 }
     );
   }
