@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import NavBar from "@/app/components/NavBar";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 import type { User, BudgetSection, BudgetItem } from "@prisma/client";
 import type { ClubMembershipWithUser } from "@/types/clubMembership";
@@ -10,6 +11,8 @@ import type { ClubMembershipWithUser } from "@/types/clubMembership";
 import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
+
+
 
 const STEPS = [
   "Choose Club Member",
@@ -21,6 +24,9 @@ const STEPS = [
 
 export default function RequestReimbursement() {
   const { user, isLoaded } = useUser();
+
+  //use router for navigation
+  const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -184,16 +190,23 @@ export default function RequestReimbursement() {
             <div style={{ position: "relative" }}>
               <h2 style={s.cardTitle}>Request a Reimbursement</h2>
               <button
+                onClick={() => router.push("/")}
                 style={{
                   position: "absolute",
                   top: 0,
                   right: 0,
+                  width: 36,
+                  height: 36,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  fontSize: 20,
-                  color: "#6b7280",
+                  fontSize: 24,
+                  color: "#000",
                   lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
                 }}
               >
                 ✕
@@ -202,166 +215,172 @@ export default function RequestReimbursement() {
           </div>
 
           {STEPS.map((label, i) => {
-            const isActive = i === currentStep;
-            const isDone = i < currentStep;
-            const isFuture = i > currentStep;
+  const isActive = i === currentStep;
+  const isDone = i < currentStep;
+  const isFuture = i > currentStep;
 
-            return (
-              <div
-                key={i}
-                style={{
-                  ...s.stepBlock,
-                  borderLeftColor: isActive ? "#3172AE" : "#e5e7eb",
-                  opacity: isFuture ? 0.4 : 1,
-                }}
-              >
-                <div style={s.stepLabelRow}>
-                  <span
+  return (
+    <div key={i}>
+      {isActive && i > 0 && (
+        <div style={{ borderTop: "1px solid #EAEAEA", marginBottom: 16, marginLeft: 19 }} />
+      )}
+
+      <div
+        style={{
+          ...s.stepBlock,
+          borderLeftColor: isActive ? "#3172AE" : "#e5e7eb",
+          opacity: isFuture ? 0.4 : 1,
+          marginBottom: isActive ? 0 : 32,
+        }}
+      >
+        <div style={s.stepLabelRow}>
+          <span
+            style={{
+              ...s.stepBubble,
+              background: isActive ? "#3172AE" : isDone ? "#8D8B8B" : "#e5e7eb",
+              color: isActive || isDone ? "#fff" : "#9ca3af",
+            }}
+          >
+            {i + 1}
+          </span>
+          <span
+            style={{
+              ...s.stepLabelText,
+              color: isActive ? "#111" : isDone ? "#8D8B8B" : "#9ca3af",
+              fontWeight: isActive ? 600 : 500,
+              fontSize: isActive ? 24 : 16,
+            }}
+          >
+            {label}
+          </span>
+        </div>
+
+        {isDone && (
+          <div style={s.doneSummary}>
+            {i === 0 && selectedMember && (
+              <p style={s.summaryBlue}>
+                {selectedMember.firstName} {selectedMember.lastName}
+              </p>
+            )}
+
+            {i === 1 && filledExpenses.length > 0 && (
+              <div>
+                {filledExpenses.map((e, idx) => (
+                  <div
+                    key={idx}
                     style={{
-                      ...s.stepBubble,
-                      background: isActive ? "#3172AE" : isDone ? "#3172AE" : "#e5e7eb",
-                      color: isActive || isDone ? "#fff" : "#9ca3af",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 13,
+                      marginBottom: 3,
                     }}
                   >
-                    {i + 1}
-                  </span>
-                  <span
-                    style={{
-                      ...s.stepLabelText,
-                      color: isActive ? "#111" : isDone ? "#3172AE" : "#9ca3af",
-                      fontWeight: isActive ? 600 : 500,
-                      fontSize: isActive ? 24 : 16,
-                    }}
-                  >
-                    {label}
-                  </span>
+                    <span style={{ color: "#3172AE", fontWeight: 700 }}>{e.description}</span>
+                    <span style={{ color: "#3172AE", fontWeight: 700 }}>
+                      {e.amount ? `$${parseFloat(e.amount).toFixed(2)}` : ""}
+                    </span>
+                  </div>
+                ))}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    fontSize: 13,
+                    color: "#3172AE",
+                    fontWeight: 700,
+                    marginTop: 4,
+                  }}
+                >
+                  ${expenseTotal.toFixed(2)}
                 </div>
-
-                {/* Done summary */}
-                {isDone && (
-                  <div style={s.doneSummary}>
-                    {i === 0 && selectedMember && (
-                      <p style={s.summaryBlue}>
-                        {selectedMember.firstName} {selectedMember.lastName}
-                      </p>
-                    )}
-
-                    {i === 1 && filledExpenses.length > 0 && (
-                      <div>
-                        {filledExpenses.map((e, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              fontSize: 13,
-                              marginBottom: 3,
-                            }}
-                          >
-                            <span style={{ color: "#3172AE", fontWeight: 700 }}>{e.description}</span>
-                            <span style={{ color: "#3172AE", fontWeight: 700 }}>
-                              {e.amount ? `$${parseFloat(e.amount).toFixed(2)}` : ""}
-                            </span>
-                          </div>
-                        ))}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            fontSize: 13,
-                            color: "#3172AE",
-                            fontWeight: 700,
-                            marginTop: 4,
-                          }}
-                        >
-                          ${expenseTotal.toFixed(2)}
-                        </div>
-                      </div>
-                    )}
-
-                    {i === 2 && uploadedFile && (
-                      <p style={{ ...s.summaryBlue, fontWeight: 700 }}>📄 {uploadedFile.name}</p>
-                    )}
-
-                    {i === 3 && selectedSection && selectedItem && (
-                      <p style={s.summaryBlue}>
-                        {/* adjust these display fields if your schema differs */}
-                        {(selectedSection.title)} —{" "}
-                        {(selectedItem.label)}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Active step content */}
-                {isActive && (
-                  <div style={s.stepContent}>
-                    {i === 0 && (
-                      <StepChooseMember
-                        members={clubMembers}
-                        selectedMemberId={selectedMemberId}
-                        onSelectMemberId={setSelectedMemberId}
-                      />
-                    )}
-
-                    {i === 1 && (
-                      <StepInputExpenses expenses={expenses} onExpenseChange={handleExpenseChange} />
-                    )}
-
-                    {i === 2 && <StepUploadReceipt uploadedFile={uploadedFile} onUpload={setUploadedFile} />}
-
-                    {i === 3 && (
-                      <StepChooseBudget
-                        budgetSections={budgetSections}
-                        selectedSectionId={selectedSectionId}
-                        setSelectedSectionId={(id) => {
-                          setSelectedSectionId(id);
-                          setSelectedItemId(null); // reset line when section changes
-                        }}
-                        budgetItems={budgetItems}
-                        selectedItemId={selectedItemId}
-                        setSelectedItemId={setSelectedItemId}
-                      />
-                    )}
-
-                    {i === 4 && <StepReviewSign signature={signature} setSignature={setSignature} />}
-
-                    {/* Nav buttons inside active step */}
-                    <div style={s.navRow}>
-                      <div style={{ flex: 1 }} />
-                      {currentStep > 0 && (
-                        <button style={s.backBtn} onClick={goBack}>
-                          ← Back
-                        </button>
-                      )}
-                      {currentStep < STEPS.length - 1 ? (
-                        <button style={s.nextBtn} onClick={goNext}>
-                          Next Step
-                        </button>
-                      ) : (
-                        <button
-                          style={{
-                            ...s.nextBtn,
-                            background: submitHover && canSubmit ? "#3172AE" : "#fff",
-                            color: submitHover && canSubmit ? "#fff" : "#3172AE",
-                            border: "2px solid #3172AE",
-                            opacity: canSubmit ? 1 : 0.5,
-                            cursor: canSubmit ? "pointer" : "not-allowed",
-                            transition: "background 0.2s, color 0.2s",
-                          }}
-                          disabled={!canSubmit}
-                          onMouseEnter={() => setSubmitHover(true)}
-                          onMouseLeave={() => setSubmitHover(false)}
-                        >
-                          Submit Reimbursement
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
-            );
-          })}
+            )}
+
+            {i === 2 && uploadedFile && (
+              <p style={{ ...s.summaryBlue, fontWeight: 700 }}>📄 {uploadedFile.name}</p>
+            )}
+
+            {i === 3 && selectedSection && selectedItem && (
+              <p style={s.summaryBlue}>
+                {selectedSection.title} —{" "}
+                {selectedItem.label}
+              </p>
+            )}
+          </div>
+        )}
+
+        {isActive && (
+          <div style={s.stepContent}>
+            {i === 0 && (
+              <StepChooseMember
+                members={clubMembers}
+                selectedMemberId={selectedMemberId}
+                onSelectMemberId={setSelectedMemberId}
+              />
+            )}
+
+            {i === 1 && (
+              <StepInputExpenses expenses={expenses} onExpenseChange={handleExpenseChange} />
+            )}
+
+            {i === 2 && <StepUploadReceipt uploadedFile={uploadedFile} onUpload={setUploadedFile} />}
+
+            {i === 3 && (
+              <StepChooseBudget
+                budgetSections={budgetSections}
+                selectedSectionId={selectedSectionId}
+                setSelectedSectionId={(id) => {
+                  setSelectedSectionId(id);
+                  setSelectedItemId(null);
+                }}
+                budgetItems={budgetItems}
+                selectedItemId={selectedItemId}
+                setSelectedItemId={setSelectedItemId}
+              />
+            )}
+
+            {i === 4 && <StepReviewSign signature={signature} setSignature={setSignature} />}
+
+            <div style={s.navRow}>
+              <div style={{ flex: 1 }} />
+              {currentStep > 0 && (
+                <button style={s.backBtn} onClick={goBack}>
+                  ← Back
+                </button>
+              )}
+              {currentStep < STEPS.length - 1 ? (
+                <button style={s.nextBtn} onClick={goNext}>
+                  Next Step
+                </button>
+              ) : (
+                <button
+                  style={{
+                    ...s.nextBtn,
+                    background: submitHover && canSubmit ? "#3172AE" : "#fff",
+                    color: submitHover && canSubmit ? "#fff" : "#3172AE",
+                    border: "2px solid #3172AE",
+                    opacity: canSubmit ? 1 : 0.5,
+                    cursor: canSubmit ? "pointer" : "not-allowed",
+                    transition: "background 0.2s, color 0.2s",
+                  }}
+                  disabled={!canSubmit}
+                  onMouseEnter={() => setSubmitHover(true)}
+                  onMouseLeave={() => setSubmitHover(false)}
+                >
+                  Submit Reimbursement
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isActive && i < STEPS.length - 1 && (
+  <div style={{ borderTop: "1px solid #EAEAEA", marginTop: 16, marginBottom: 16, marginLeft: 19 }} />
+)}
+    </div>
+  );
+})}
         </div>
       </div>
     </div>
@@ -645,6 +664,7 @@ function StepChooseBudget({
           paddingRight: 28,
           cursor: "pointer",
           color: selectedSectionId ? "#111" : "#9ca3af",
+          fontFamily: "var(--font-public-sans)",
         }}
         value={selectedSectionId ?? ""}
         onChange={(e) => setSelectedSectionId(e.target.value || null)}
@@ -668,6 +688,7 @@ function StepChooseBudget({
           paddingRight: 28,
           cursor: selectedSectionId ? "pointer" : "not-allowed",
           color: selectedItemId ? "#111" : "#9ca3af",
+          fontFamily: "var(--font-public-sans)",
         }}
         value={selectedItemId ?? ""}
         onChange={(e) => setSelectedItemId(e.target.value || null)}
@@ -722,7 +743,7 @@ const s = {
     overflowY: "auto",
   },
   content: {
-    paddingTop: 116,
+    paddingTop: 130,
     paddingBottom: 48,
     paddingLeft: 32,
     paddingRight: 32,
@@ -731,7 +752,7 @@ const s = {
     background: "transparent",
   },
   cardHeader: {
-    marginBottom: 24,
+    marginBottom: 30,
   },
   cardTitle: {
     fontSize: 36,
@@ -745,7 +766,7 @@ const s = {
   stepBlock: {
     borderLeft: "3px solid",
     paddingLeft: 16,
-    marginBottom: 24,
+    marginBottom: 32,
     transition: "border-color 0.2s, opacity 0.2s",
   },
   stepLabelRow: {
@@ -819,15 +840,16 @@ const s = {
     display: "flex",
     flexDirection: "row" as const,
     alignItems: "center",
-    gap: 12,
+    gap: 30,
     marginTop: 20,
   },
   backBtn: {
     background: "none",
     border: "none",
-    color: "#6b7280",
+    color: "black",
     cursor: "pointer",
     fontSize: 14,
+    fontFamily: "var(--font-pt-sans)",
   },
   nextBtn: {
     background: "#3172AE",
