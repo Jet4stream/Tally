@@ -2,9 +2,11 @@
 import { useState, useEffect, useMemo } from "react";
 import DataTable from "./DataTable";
 import { useUser } from "@clerk/nextjs";
-import { getReimbursementsByPayeeUserId } from "@/lib/api/reimbursement";
+import { getReimbursementsByClubId } from "@/lib/api/reimbursement";
 import type { ReimbursementWithPayee } from "@/types/reimbursement";
 import ClubMembers from "./ClubMembers";
+// import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
+import { useTreasurerStore } from "@/store/treasurerStore";
 
 export default function DashboardContent() {
   const [subTab, setSubTab] = useState<string>("unpaid");
@@ -13,6 +15,7 @@ export default function DashboardContent() {
   const [err, setErr] = useState("");
   const { user, isLoaded } = useUser();
   const userId = user?.id;
+  const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
 
   const { unpaidRows, paidRows } = useMemo(() => {
     const mapped = reimbursements.map((r) => ({
@@ -39,6 +42,8 @@ export default function DashboardContent() {
   useEffect(() => {
     if (!isLoaded) return;
     if (!userId) return;
+    console.log(treasurerClubId)
+    if (!treasurerClubId) return;
 
     let cancelled = false;
 
@@ -46,7 +51,7 @@ export default function DashboardContent() {
       setLoading(true);
       setErr("");
       try {
-        const data = await getReimbursementsByPayeeUserId(userId);
+        const data = await getReimbursementsByClubId(treasurerClubId);
         if (!cancelled) setReimbursements(data);
       } catch (e: any) {
         const msg =

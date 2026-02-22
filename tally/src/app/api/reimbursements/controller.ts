@@ -94,17 +94,14 @@ export async function getReimbursementsByPayeeUserIdController(
   });
 }
 
-export async function getReimbursementsByClubIdController(clubId: string) {
+export async function getReimbursementsByClubIdController(clubId: string): Promise<ReimbursementWithPayee[]> {
   return prisma.reimbursement.findMany({
     where: { clubId },
-    include: {
-        payee: true,
-        budgetItemId: {
-        include: {
-          section: true, // <-- or `budgetSection` depending on your schema
-        },
-    	},
-		},
+		include: {
+      payee: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+    },
     orderBy: { submittedAt: "desc" },
   });
 }

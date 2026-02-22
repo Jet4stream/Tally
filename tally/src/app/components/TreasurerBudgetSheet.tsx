@@ -5,7 +5,8 @@ import type { BudgetSection, BudgetItem } from "@prisma/client";
 import { useUser } from "@clerk/nextjs";
 
 import { BudgetCategory } from "@prisma/client";
-import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
+// import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
+import { useTreasurerStore } from "@/store/treasurerStore";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
 
@@ -91,6 +92,7 @@ export default function BudgetSheet() {
   const [reallocateAmount, setReallocateAmount] = useState("");
   const [reallocateFrom, setReallocateFrom] = useState("");
   const [reallocateTo, setReallocateTo] = useState("");
+  const treasurerClubIdGlobal = useTreasurerStore((s) => s.treasurerClubId);
 
   // 1) find treasurer club id
   useEffect(() => {
@@ -99,8 +101,8 @@ export default function BudgetSheet() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await getTreasurerClubMembers(user.id);
-        if (!cancelled) setTreasurerClubId(data.clubId);
+        // const data = await getTreasurerClubMembers(user.id);
+        if (!cancelled) setTreasurerClubId(treasurerClubIdGlobal);
       } catch (e) {
         console.error("Failed to fetch treasurer club id:", e);
         if (!cancelled) setTreasurerClubId(null);
