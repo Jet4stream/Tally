@@ -6,7 +6,7 @@ import { getReimbursementsByClubId, getAllReimbursements } from "@/lib/api/reimb
 import type { ReimbursementWithPayee } from "@/types/reimbursement";
 import ClubMembers from "./ClubMembers";
 import { useTreasurerStore } from "@/store/treasurerStore";
-import { getUserById } from "@/lib/api/user"; // ✅ add
+import { getUserById } from "@/lib/api/user";
 import { GlobalRole } from "@prisma/client";
 
 export default function DashboardContent() {
