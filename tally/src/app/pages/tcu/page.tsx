@@ -1,40 +1,84 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import MemberTopBar from "@/app/components/MemberTopBar";
-import TreasuryMemberViewBar from "@/app/components/TreasuryMemberViewBar";
-import MemberDashboard from "@/app/components/MemberDashboard";
+
+import NavBar from "@/app/components/NavBar";
+import TCUTabSpacer from "@/app/components/TabSpacerTCU";
+
+import { useTreasurerStore } from "@/store/treasurerStore";
+import { getUserById } from "@/lib/api/user"; // <-- make sure you have this helper
 
 export default function Page() {
+  const router = useRouter();
   const { user, isLoaded } = useUser();
-  const [isTreasurer, setIsTreasurer] = useState(false);
+
+  const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
+
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoaded || !user?.id) return;
+    if (!isLoaded) return;
 
-    fetch(`/api/clubMemberships?userId=${user.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const hasTreasurer = data.data?.some(
-          (m: any) => m.role === "TREASURER"
-        );
-        setIsTreasurer(hasTreasurer);
-      });
-  }, [isLoaded, user?.id]);
+    // Not signed in at all — middleware should handle this, but safe fallback:
+    if (!user?.id) {
+      router.replace("/pages/login");
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // 1) check DB role
+        const dbUser = await getUserById(user.id);
+
+        if (cancelled) return;
+
+        if (dbUser?.role === "TCU_TREASURER") {
+          setChecking(false); // allow access
+          return;
+        }
+
+        // 2) not global TCU: route based on treasurer club state
+        if (!treasurerClubId) {
+          router.replace("/pages/members");
+        } else {
+          router.replace("/");
+        }
+      } catch (e) {
+        // If we can't verify role, fail closed (send away)
+        if (cancelled) return;
+
+        if (!treasurerClubId) router.replace("/pages/members");
+        else router.replace("/");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, user?.id, treasurerClubId, router]);
+
+  // Optional: prevent flash of TCU page while redirecting/checking
+  if (checking) {
+    return (
+      <div>
+        <NavBar title="TCU Treasury" />
+        <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px] px-4 sm:px-6 lg:px-[32px]">
+          <p className="text-white/90">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pt-[64px] sm:pt-[80px] lg:pt-[100px]">
-        
-      <MemberTopBar />
-      
-      {isTreasurer && <TreasuryMemberViewBar />}
-      <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">
-      <p className="text-sm sm:text-base text-black font-[family-name:var(--font-pt-sans)]">
-      Your club treasurers submitted the following reimbursements. Please reach out to them with any questions.
-    </p>
-    </div>
-      <MemberDashboard />
+    <div>
+      <NavBar title="TCU Treasury" />
+      <div className="mt-[64px] sm:mt-[80px] lg:mt-[100px]">
+        <TCUTabSpacer />
+      </div>
     </div>
   );
 }
-

@@ -7,13 +7,16 @@ import { useClerk } from "@clerk/nextjs";
 
 import tallyLogo from "../assests/Tally.svg";
 import userIcon from "../assests/userIcon.svg";
-
 import { useTreasurerStore } from "@/store/treasurerStore";
 import { getClubById } from "@/lib/api/club";
 
-export default function NavBar() {
-  const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
+// Added title to the props interface
+interface NavBarProps {
+  title?: string;
+}
 
+export default function NavBar({ title }: NavBarProps) {
+  const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
   const [clubName, setClubName] = useState<string>("");
   const [loadingClub, setLoadingClub] = useState(false);
 
@@ -55,7 +58,6 @@ export default function NavBar() {
     }
 
     let cancelled = false;
-
     (async () => {
       try {
         setLoadingClub(true);
@@ -68,9 +70,7 @@ export default function NavBar() {
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [treasurerClubId]);
 
   return (
@@ -91,7 +91,11 @@ export default function NavBar() {
 
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-[16px]">
           <p className="text-xl sm:text-3xl lg:text-[40px] font-[family-name:var(--font-public-sans)] font-bold leading-[120%] text-white truncate">
-            {loadingClub ? "Loading club..." : clubName || "No Club Selected"}
+            {title 
+              ? title 
+              : loadingClub 
+                ? "Loading club..." 
+                : clubName || "No Club Selected"}
           </p>
         </div>
       </div>

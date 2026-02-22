@@ -50,8 +50,8 @@ export const getReimbursementsByClubId = async (
   return res.data.data;
 };
 
-export const getAllReimbursements = async (): Promise<Reimbursement[]> => {
-  const res = await axios.get<ApiResponse<Reimbursement[]>>("/api/reimbursements");
+export const getAllReimbursements = async (): Promise<ReimbursementWithPayee[]> => {
+  const res = await axios.get<ApiResponse<ReimbursementWithPayee[]>>("/api/reimbursements");
   return res.data.data;
 };
 

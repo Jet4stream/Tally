@@ -1,54 +1,27 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { useSignIn, useUser } from "@clerk/nextjs";
+import { useSignIn, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { ClubInvite } from "@prisma/client";
 
 import logoFrame from "../assests/Frame.svg";
 import logoText from "../assests/Group 1.svg";
 
 import { getClubInvitesByEmail } from "@/lib/api/clubInvite";
-import { createClubMembership } from "@/lib/api/clubMembership";
-import { MembershipRole } from "@prisma/client";
+import { getUserByEmail } from "@/lib/api/user";
 
 interface LoginFormProps {
   subtitle: string;
   isTCU?: boolean;
 }
 
-function isDuplicateMembershipError(err: any) {
-  const status = err?.response?.status;
-  const code = err?.response?.data?.code || err?.response?.data?.error?.code;
-  const msg =
-    err?.response?.data?.message ||
-    err?.message ||
-    err?.response?.data?.error ||
-    "";
-
-  if (status === 409) return true;
-  if (code === "P2002") return true;
-  if (typeof msg === "string" && /duplicate|unique|already exists/i.test(msg)) return true;
-
-  return false;
-}
-
-// Wait until Clerk user is available after setActive
-async function waitForUserId(getUserId: () => string | undefined, timeoutMs = 4000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const id = getUserId();
-    if (id) return id;
-    await new Promise((r) => setTimeout(r, 50));
-  }
-  return undefined;
-}
-
 export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
   const { isLoaded, signIn, setActive } = useSignIn();
-  const { user, isLoaded: isUserLoaded } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -67,8 +40,10 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
     setIsSubmitting(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       const result = await signIn.create({
-        identifier: email,
+        identifier: normalizedEmail,
         password,
       });
 
@@ -79,44 +54,64 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
 
       await setActive({ session: result.createdSessionId });
 
-      const userId = await waitForUserId(() => user?.id);
-      if (!userId) {
-        console.warn("Signed in but user.id not available yet.");
-        router.push("/");
+      // 1) Ensure they exist in your DB (applies to both student + TCU)
+      let dbUser = null;
+      try {
+        dbUser = await getUserByEmail(normalizedEmail);
+      } catch (e: any) {
+        const status = e?.response?.status;
+        if (status === 404) {
+          dbUser = null;
+        } else {
+          console.error("Error checking DB user:", e);
+          setError("Could not verify account setup. Please try again.");
+          return;
+        }
+      }
+
+      if (!dbUser) {
+        const redirectPath = isTCU
+          ? "/pages/signup/complete?role=TCU"
+          : "/pages/signup/complete";
+
+        router.push(redirectPath);
         return;
       }
 
-      try {
-        const normalizedEmail = email.trim().toLowerCase();
-        const invites = await getClubInvitesByEmail(normalizedEmail);
+      // 2) TCU users: skip invite checks, go to TCU dashboard
+      if (isTCU) {
+        router.push("/pages/tcu");
+        return;
+      }
 
-        await Promise.all(
-          invites.map(async (invite) => {
-            try {
-              await createClubMembership({
-                clubId: invite.clubId,
-                userId,
-                role: (invite.role as MembershipRole) ?? MembershipRole.MEMBER,
-              });
-            } catch (err: any) {
-              if (isDuplicateMembershipError(err)) return;
-              console.error("Failed to create membership from invite:", err);
-            }
-          })
-        );
-      } catch (inviteErr) {
-        console.error("Failed to process club invites:", inviteErr);
+      // 3) Students: invite check → clubMember, else home
+      let invites: ClubInvite[] = [];
+      try {
+        invites = await getClubInvitesByEmail(normalizedEmail);
+      } catch (e) {
+        // if invite lookup fails, don't block login
+        console.error("Invite lookup failed:", e);
+        invites = [];
+      }
+
+      if ((invites ?? []).length > 0) {
+        router.push("/pages/clubMember");
+        return;
       }
 
       router.push("/");
     } catch (err: any) {
+      // If Clerk errors, don't keep a half-signed-in session around
+      try {
+        await signOut();
+      } catch {}
+
       const clerkError = err?.errors?.[0];
       setError(clerkError?.longMessage || clerkError?.message || "Login failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-[#3b71b1] flex items-center justify-center relative overflow-hidden font-sans">
       {!isTCU && (

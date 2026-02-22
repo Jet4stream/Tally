@@ -2,57 +2,79 @@
 import { useState, useEffect, useMemo } from "react";
 import DataTable from "./DataTable";
 import { useUser } from "@clerk/nextjs";
-import { getReimbursementsByClubId } from "@/lib/api/reimbursement";
+import { getReimbursementsByClubId, getAllReimbursements } from "@/lib/api/reimbursement";
 import type { ReimbursementWithPayee } from "@/types/reimbursement";
 import ClubMembers from "./ClubMembers";
-// import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
 import { useTreasurerStore } from "@/store/treasurerStore";
+import { getUserById } from "@/lib/api/user";
+import { GlobalRole } from "@prisma/client";
 
 export default function DashboardContent() {
   const [subTab, setSubTab] = useState<string>("unpaid");
   const [reimbursements, setReimbursements] = useState<ReimbursementWithPayee[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
   const { user, isLoaded } = useUser();
   const userId = user?.id;
+
   const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
 
-const { unpaidRows, paidRows } = useMemo(() => {
-  const mapped = reimbursements.map((r) => ({
-    id: r.id,
-    date: new Date(r.submittedAt).toLocaleDateString("en-US"),
-    payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
-    owed: `$${(r.amountCents / 100).toFixed(2)}`,
-    item: r.description ?? "",
-    event: r.clubName ?? "",
-    status: r.status,
-    generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
-    statusColor:
-      r.status === "REJECTED"
-        ? "text-red-500"
-        : r.status === "APPROVED"
-        ? "text-green-600"
-        : "text-gray-600",
-  }));
+  const { unpaidRows, paidRows } = useMemo(() => {
+    const mapped = reimbursements.map((r) => ({
+      id: r.id,
+      date: new Date(r.submittedAt).toLocaleDateString("en-US"),
+      payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
+      owed: `$${(r.amountCents / 100).toFixed(2)}`,
+      item: r.description ?? "",
+      event: r.clubName ?? "",
+      status: r.status,
+      generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
+      amountCents: r.amountCents,
+      budgetItemId: r.budgetItemId,
+      statusColor:
+        r.status === "REJECTED"
+          ? "text-red-500"
+          : r.status === "APPROVED"
+          ? "text-green-600"
+          : "text-gray-600",
+    }));
 
-  return {
-    unpaidRows: mapped.filter((r) => r.status !== "PAID"),
-    paidRows: mapped.filter((r) => r.status === "PAID"),
-  };
-}, [reimbursements]);
+    return {
+      unpaidRows: mapped.filter((r) => r.status !== "PAID"),
+      paidRows: mapped.filter((r) => r.status === "PAID"),
+    };
+  }, [reimbursements]);
 
- useEffect(() => {
+  useEffect(() => {
     if (!isLoaded) return;
     if (!userId) return;
-    if (!treasurerClubId) return;
 
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       setErr("");
+
       try {
-        const data = await getReimbursementsByClubId(treasurerClubId);
+        const dbUser = await getUserById(userId);
+
+        const isTcuTreasury =
+          dbUser?.role === GlobalRole.TCU_TREASURER; 
+
+        let data: ReimbursementWithPayee[] = [];
+
+        if (isTcuTreasury) {
+          data = await getAllReimbursements();
+        } else {
+          if (!treasurerClubId) {
+            // normal treasurer with no club selected yet -> don't throw
+            data = [];
+          } else {
+            data = await getReimbursementsByClubId(treasurerClubId);
+          }
+        }
+
         if (!cancelled) setReimbursements(data);
       } catch (e: any) {
         const msg =
@@ -69,6 +91,7 @@ const { unpaidRows, paidRows } = useMemo(() => {
       cancelled = true;
     };
   }, [isLoaded, userId, treasurerClubId]);
+
 
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">

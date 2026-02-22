@@ -15,12 +15,16 @@ export default function MemberDashboard() {
 
   const { unpaidRows, paidRows } = useMemo(() => {
     const mapped = reimbursements.map((r) => ({
+      id: r.id,
       date: new Date(r.submittedAt).toLocaleDateString("en-US"),
       payTo: `${r.payee?.firstName ?? ""} ${r.payee?.lastName ?? ""}`.trim(),
       owed: `$${(r.amountCents / 100).toFixed(2)}`,
       item: r.description ?? "",
       event: r.clubName ?? "",
+      generatedFormPdfUrl: r.generatedFormPdfUrl ?? null,
       status: r.status,
+      amountCents: r.amountCents,
+      budgetItemId: r.budgetItemId,
       statusColor:
         r.status === "REJECTED"
           ? "text-red-500"
