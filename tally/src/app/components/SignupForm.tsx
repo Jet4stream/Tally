@@ -9,7 +9,13 @@ import { useSignUp } from "@clerk/nextjs";
 import logoFrame from "../assests/Frame.svg";
 import logoText from "../assests/Group 1.svg";
 
-export default function SignupForm({ subtitle, isTCU = false }: { subtitle: string; isTCU?: boolean }) {
+export default function SignupForm({
+  subtitle,
+  isTCU = false,
+}: {
+  subtitle: string;
+  isTCU?: boolean;
+}) {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
 
@@ -17,7 +23,10 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState("");
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", password: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
   });
   const [error, setError] = useState("");
 
@@ -42,12 +51,11 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      
+
       setVerifying(true);
-      
     } catch (err: any) {
       const clerkError = err.errors?.[0];
-      
+
       if (clerkError?.code === "form_identifier_exists") {
         setError("This email is already in use.");
       } else if (clerkError?.code === "session_exists") {
@@ -55,7 +63,7 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
       } else {
         setError(clerkError?.message || "Something went wrong.");
       }
-      
+
       setVerifying(false);
     } finally {
       setLoading(false);
@@ -68,10 +76,17 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
     setLoading(true);
 
     try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code,
+      });
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        router.push("/pages/signup/complete");
+
+        const redirectPath = isTCU
+          ? "/pages/signup/complete?role=TCU"
+          : "/pages/signup/complete";
+
+        router.push(redirectPath);
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Invalid code.");
@@ -89,12 +104,18 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
   return (
     <div className="min-h-screen bg-[#3b71b1] flex items-center justify-center relative overflow-hidden font-sans">
       <div className="bg-white p-16 rounded-[2rem] shadow-2xl w-full max-w-[540px] z-10 mx-4 text-center transition-all duration-300">
-        
         {verifying ? (
           <div className="flex flex-col items-center animate-in fade-in duration-500">
-            <h1 className="text-[32px] font-extrabold text-gray-900 mb-4">Check your email</h1>
-            <p className="text-gray-500 mb-8">Enter the 6-digit code sent to your email.</p>
-            <form onSubmit={handleVerify} className="w-full flex flex-col gap-5">
+            <h1 className="text-[32px] font-extrabold text-gray-900 mb-4">
+              Check your email
+            </h1>
+            <p className="text-gray-500 mb-8">
+              Enter the 6-digit code sent to your email.
+            </p>
+            <form
+              onSubmit={handleVerify}
+              className="w-full flex flex-col gap-5"
+            >
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <input
                 value={code}
@@ -108,8 +129,8 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
                 className="border border-gray-300 rounded-xl p-4 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-blue-400"
                 required
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full bg-[#4a7cb9] text-white font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]"
               >
@@ -127,7 +148,9 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
               <p className="text-[12px] font-bold text-gray-500 tracking-[0.2em] uppercase mb-4 font-[family-name:var(--font-pt-sans)]">
                 {subtitle}
               </p>
-              <h1 className="text-[40px] font-extrabold text-gray-900 leading-tight">Sign up</h1>
+              <h1 className="text-[40px] font-extrabold text-gray-900 leading-tight">
+                Sign up
+              </h1>
             </div>
 
             <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
@@ -138,16 +161,44 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <input name="firstName" placeholder="First name" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
-                <input name="lastName" placeholder="Last name" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
+                <input
+                  name="firstName"
+                  placeholder="First name"
+                  onChange={handleChange}
+                  className="border border-gray-300 rounded-xl p-3"
+                  required
+                />
+                <input
+                  name="lastName"
+                  placeholder="Last name"
+                  onChange={handleChange}
+                  className="border border-gray-300 rounded-xl p-3"
+                  required
+                />
               </div>
-              <input name="email" type="email" placeholder="Tufts email" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
-              <input name="password" type="password" placeholder="Password" onChange={handleChange} className="border border-gray-300 rounded-xl p-3" required />
+              <input
+                name="email"
+                type="email"
+                placeholder="Tufts email"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                onChange={handleChange}
+                className="border border-gray-300 rounded-xl p-3"
+                required
+              />
 
               <button
                 type="submit"
                 disabled={!isFormValid || loading}
-                style={{ backgroundColor: !isFormValid ? "#EAEAEA" : "#4a7cb9" }}
+                style={{
+                  backgroundColor: !isFormValid ? "#EAEAEA" : "#4a7cb9",
+                }}
                 className={`w-full ${isFormValid ? "text-white" : "text-gray-400"} font-bold py-4 rounded-xl shadow-md flex items-center justify-center min-h-[56px]`}
               >
                 {loading ? <Spinner /> : "Next"}
@@ -156,7 +207,10 @@ export default function SignupForm({ subtitle, isTCU = false }: { subtitle: stri
 
             <p className="mt-8 text-gray-500 text-sm">
               Already have an account?{" "}
-              <Link href="/pages/login" className="text-[#4a7cb9] font-bold hover:underline">
+              <Link
+                href="/pages/login"
+                className="text-[#4a7cb9] font-bold hover:underline"
+              >
                 Log in
               </Link>
             </p>
