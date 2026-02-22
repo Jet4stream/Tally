@@ -74,7 +74,14 @@ export async function postReimbursementController(input: CreateReimbursementInpu
 }
 
 export async function getAllReimbursementsController() {
-  return prisma.reimbursement.findMany({ orderBy: { submittedAt: "desc" } });
+  return prisma.reimbursement.findMany({ 
+		orderBy: { submittedAt: "desc" },
+		include: 
+		{
+      payee: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+    }, });
 }
 
 export async function getOneReimbursementController(id: string) {

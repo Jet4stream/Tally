@@ -7,6 +7,7 @@ import {
   getClubInvitesByEmailController,
   updateClubInviteController,
   deleteClubInviteController,
+  deleteClubInvitesByEmailAndClubIdController
 } from "./controller";
 
 /**
@@ -101,18 +102,32 @@ export async function PUT(req: Request) {
 }
 
 /**
- * DELETE /api/club-invitations?id=<invitationId>
+ * DELETE /api/club-invitations
+ * Supports:
+ *  - ?id=<invitationId>              -> delete single by id
+ *  - ?email=<email>&clubId=<clubId>  -> bulk delete by email + clubId
  */
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    if (!id) {
-      return NextResponse.json({ code: "ERROR", message: "Missing id" }, { status: 400 });
+    const email = searchParams.get("email");
+    const clubId = searchParams.get("clubId");
+
+    if (id) {
+      const deleted = await deleteClubInviteController(id);
+      return NextResponse.json({ code: "SUCCESS", data: deleted });
     }
 
-    const deleted = await deleteClubInviteController(id);
-    return NextResponse.json({ code: "SUCCESS", data: deleted });
+    if (email && clubId) {
+      const result = await deleteClubInvitesByEmailAndClubIdController(email, clubId);
+      return NextResponse.json({ code: "SUCCESS", data: result });
+    }
+
+    return NextResponse.json(
+      { code: "ERROR", message: "Missing id OR (email and clubId)" },
+      { status: 400 }
+    );
   } catch (error: any) {
     console.error("DELETE /api/club-invitations error:", error);
     return NextResponse.json(

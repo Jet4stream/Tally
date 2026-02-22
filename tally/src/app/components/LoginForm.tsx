@@ -4,8 +4,9 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { useSignIn, useUser } from "@clerk/nextjs";
+import { useSignIn, useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { ClubInvite } from "@prisma/client";
 
 import logoFrame from "../assests/Frame.svg";
 import logoText from "../assests/Group 1.svg";
@@ -13,6 +14,8 @@ import logoText from "../assests/Group 1.svg";
 import { getClubInvitesByEmail } from "@/lib/api/clubInvite";
 import { createClubMembership } from "@/lib/api/clubMembership";
 import { MembershipRole } from "@prisma/client";
+
+import { getUserByEmail } from "@/lib/api/user";
 
 interface LoginFormProps {
   subtitle: string;
@@ -57,6 +60,8 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const clerk = useClerk();
+
   const isFormValid = email.trim() !== "" && password.trim() !== "";
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -79,31 +84,50 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
 
       await setActive({ session: result.createdSessionId });
 
-      const userId = await waitForUserId(() => user?.id);
-      if (!userId) {
-        console.warn("Signed in but user.id not available yet.");
-        router.push("/");
+      // const userId = clerk.user?.id;
+      // if (!userId) {
+      //   console.warn("Signed in but user.id not available yet.");
+      //   router.push("/");
+      //   return;
+      // }
+
+      let dbUser = null;
+      try {
+        dbUser = await getUserByEmail(email.trim().toLowerCase());
+      } catch (e: any) {
+        const status = e?.response?.status;
+        if (status === 404) {
+          dbUser = null;
+        } else {
+          console.error("Error checking DB user:", e);
+          setError("Could not verify account setup. Please try again.");
+          return;
+        }
+      }
+
+      if (!dbUser) {
+        router.push("/pages/signup/complete");
         return;
       }
 
       try {
-        const normalizedEmail = email.trim().toLowerCase();
-        const invites = await getClubInvitesByEmail(normalizedEmail);
+       const normalizedEmail = email.trim().toLowerCase();
 
-        await Promise.all(
-          invites.map(async (invite) => {
-            try {
-              await createClubMembership({
-                clubId: invite.clubId,
-                userId,
-                role: (invite.role as MembershipRole) ?? MembershipRole.MEMBER,
-              });
-            } catch (err: any) {
-              if (isDuplicateMembershipError(err)) return;
-              console.error("Failed to create membership from invite:", err);
-            }
-          })
-        );
+        let invites: ClubInvite[] = [];
+        try {
+          invites = await getClubInvitesByEmail(normalizedEmail);
+        } catch (e) {
+          // if invite lookup fails, don't block login
+          console.error("Invite lookup failed:", e);
+          invites = [];
+        }
+
+        if ((invites ?? []).length > 0) {
+          router.push("/pages/clubMember");
+          return;
+        }
+
+        router.push("/");
       } catch (inviteErr) {
         console.error("Failed to process club invites:", inviteErr);
       }
