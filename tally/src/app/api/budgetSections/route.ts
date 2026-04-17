@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Budget section created", data: section },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/budget-sections error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create budget section" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create budget section" },
       { status: 500 }
     );
   }
@@ -88,10 +88,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateBudgetSectionController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/budget-sections error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update budget section" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update budget section" },
       { status: 500 }
     );
   }
@@ -110,10 +110,10 @@ export async function DELETE(req: Request) {
 
     const deleted = await deleteBudgetSectionController(id);
     return NextResponse.json({ code: "SUCCESS", data: deleted });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/budget-sections error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete budget section" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete budget section" },
       { status: 500 }
     );
   }

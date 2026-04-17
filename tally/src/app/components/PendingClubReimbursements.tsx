@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
+import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 import paperclipIcon from "../assests/paperclip.svg";
 import receiptIcon from "../assests/receipt.svg";
@@ -20,10 +21,10 @@ import { useReceiptModal } from "@/hooks/useReceiptModal";
 
 export default function PendingClubReimbursements({ clubId }: { clubId: string }) {
   const { user, isLoaded } = useUser();
-  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
+  const { pdfUrl, activeReimbursement, handleOpenPdf, closeModal } = usePdfModal();
   const { handleOpenReceipt } = useReceiptModal();
 
-  const [pending, setPending] = useState<any[]>([]);
+  const [pending, setPending] = useState<ReimbursementWithPayee[]>([]);
   const [isOpen, setIsOpen] = useState(true);
 
   const [isTCU, setIsTCU] = useState(false);
@@ -34,7 +35,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
     try {
       const parsed = JSON.parse(raw);
       if (parsed.expenses?.length) {
-        return parsed.expenses.map((e: any) => e.description).join(", ");
+        return (parsed.expenses as { description: string }[]).map((e) => e.description).join(", ");
       }
       return raw;
     } catch {

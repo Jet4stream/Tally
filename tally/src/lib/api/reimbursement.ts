@@ -4,11 +4,6 @@ import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 type ApiResponse<T> = { code: string; message?: string; data: T };
 
-type CreateReimbursementInput = Omit <
-  Reimbursement,
-  "id" | "createdAt" | "updatedAt"
->;
-
 export const createReimbursement = async (payload: {
   clubId: string;
   clubName: string;

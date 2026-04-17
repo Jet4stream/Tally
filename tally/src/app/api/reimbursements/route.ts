@@ -115,10 +115,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Reimbursement created", data: r },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/reimbursements error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create reimbursement", data: null },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create reimbursement", data: null },
       { status: 500 }
     );
   }
@@ -190,10 +190,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateReimbursementController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/reimbursements error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update reimbursement" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update reimbursement" },
       { status: 500 }
     );
   }
@@ -217,10 +217,10 @@ export async function DELETE(req: Request) {
     await deleteReimbursementWithFilesController(id);
 
     return NextResponse.json({ code: "SUCCESS" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE reimbursement error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Delete failed" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Delete failed" },
       { status: 500 }
     );
   }

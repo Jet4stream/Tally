@@ -25,10 +25,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "User created", data: user },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/users error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create user" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create user" },
       { status: 500 }
     );
   }
@@ -132,10 +132,10 @@ export async function PUT(req: Request) {
     const updatedUser = await updateUserController(id, updateData);
 
     return NextResponse.json({ code: "SUCCESS", data: updatedUser });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/users error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update user" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update user" },
       { status: 500 }
     );
   }
@@ -154,10 +154,10 @@ export async function DELETE(req: Request) {
 
     const deletedUser = await deleteUserController(id);
     return NextResponse.json({ code: "SUCCESS", data: deletedUser });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/users error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete user" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete user" },
       { status: 500 }
     );
   }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { prismaMock } from "../mocks/prisma";
 
 // Mock nodemailer before importing the controller (which calls createTransport at module level)

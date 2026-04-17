@@ -54,8 +54,9 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
       let dbUser = null;
       try {
         dbUser = await getUserByEmail(normalizedEmail);
-      } catch (e: any) {
-        const status = e?.response?.status;
+      } catch (e) {
+        const axiosErr = e as { response?: { status?: number } };
+        const status = axiosErr?.response?.status;
         if (status === 404) {
           dbUser = null;
         } else {
@@ -96,13 +97,13 @@ export default function LoginForm({ subtitle, isTCU = false }: LoginFormProps) {
       }
 
       router.push("/");
-    } catch (err: any) {
-      // If Clerk errors, don't keep a half-signed-in session around
+    } catch (err) {
       try {
         await signOut();
       } catch {}
 
-      const clerkError = err?.errors?.[0];
+      const clerkErr = err as { errors?: { longMessage?: string; message?: string }[] };
+      const clerkError = clerkErr?.errors?.[0];
       setError(clerkError?.longMessage || clerkError?.message || "Login failed.");
     } finally {
       setIsSubmitting(false);

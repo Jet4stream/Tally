@@ -39,7 +39,7 @@ export default function EditProfileForm() {
             lZip: data.tempZip || "",
           });
         }
-      } catch (err) {
+      } catch {
         setError("Could not retrieve profile data.");
       } finally {
         setFetching(false);
@@ -71,8 +71,9 @@ export default function EditProfileForm() {
         tempZip: formData.lZip,
       });
       router.push("/pages/members"); 
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Update failed.");
+    } catch (err) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Update failed.");
     } finally {
       setLoading(false);
     }

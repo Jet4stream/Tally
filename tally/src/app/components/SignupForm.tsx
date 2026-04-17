@@ -59,8 +59,9 @@ export default function SignupForm({
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setVerifying(true);
-    } catch (err: any) {
-      const clerkError = err.errors?.[0];
+    } catch (err) {
+      const clerkErr = err as { errors?: { code?: string; message?: string }[] };
+      const clerkError = clerkErr.errors?.[0];
       if (clerkError?.code === "form_identifier_exists") {
         setError("This email is already in use.");
       } else if (clerkError?.code === "session_exists") {
@@ -93,8 +94,9 @@ export default function SignupForm({
           beforeEmit: () => router.push(redirectPath),
         });
       }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Invalid code.");
+    } catch (err) {
+      const clerkErr = err as { errors?: { message?: string }[] };
+      setError(clerkErr.errors?.[0]?.message || "Invalid code.");
     } finally {
       setLoading(false);
     }

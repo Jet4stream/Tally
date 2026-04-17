@@ -36,12 +36,12 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
         memberships: data?.memberships ?? [],
         loading: false,
       });
-    } catch (e: any) {
+    } catch (e) {
       set({
         treasurerClubId: null,
         memberships: [],
         loading: false,
-        error: e?.message ?? "Failed to load treasurer info",
+        error: e instanceof Error ? e.message : "Failed to load treasurer info",
       });
     }
   },
@@ -55,12 +55,12 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
         memberships: data?.memberships ?? [],
         loading: false,
       });
-    } catch (e: any) {
+    } catch (e) {
       set({
         treasurerClubId: null,
         memberships: [],
         loading: false,
-        error: e?.message ?? "Failed to refresh treasurer info",
+        error: e instanceof Error ? e.message : "Failed to refresh treasurer info",
       });
     }
   },

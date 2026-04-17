@@ -47,7 +47,7 @@ export default function Page() {
         } else {
           router.replace("/");
         }
-      } catch (e) {
+      } catch {
         // If we can't verify role, fail closed (send away)
         if (cancelled) return;
 

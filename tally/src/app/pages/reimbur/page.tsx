@@ -6,7 +6,6 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 import type { User, BudgetSection, BudgetItem } from "@prisma/client";
-import type { ClubMembershipWithUser } from "@/types/clubMembership";
 import { useTreasurerStore } from "@/store/treasurerStore";
 
 // import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
@@ -25,7 +24,7 @@ const STEPS = [
 ];
 
 export default function RequestReimbursement() {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -49,8 +48,6 @@ export default function RequestReimbursement() {
   const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
   const memberships = useTreasurerStore((s) => s.memberships);
   const loadingTreasurer = useTreasurerStore((s) => s.loading);
-
-  const [nextHover, setNextHover] = useState(false);
 
   // step 2/3/5
   const [expenses, setExpenses] = useState(
@@ -246,9 +243,9 @@ export default function RequestReimbursement() {
       URL.revokeObjectURL(downloadUrl);
 
       router.push("/");
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      setSubmitError(e?.message ?? "Failed to submit reimbursement");
+      setSubmitError(e instanceof Error ? e.message : "Failed to submit reimbursement");
     } finally {
       setSubmitting(false);
     }

@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Membership created", data: membership },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { code: "DUPLICATE_MEMBERSHIP", message: "Membership already exists", data: null },
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     console.error("POST /api/club-memberships error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create membership" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create membership" },
       { status: 500 }
     );
   }
@@ -121,10 +121,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateClubMembershipController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/club-memberships error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update membership" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update membership" },
       { status: 500 }
     );
   }
@@ -143,10 +143,10 @@ export async function DELETE(req: Request) {
 
     const deleted = await deleteClubMembershipController(id);
     return NextResponse.json({ code: "SUCCESS", data: deleted });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/club-memberships error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete membership" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete membership" },
       { status: 500 }
     );
   }

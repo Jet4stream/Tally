@@ -65,8 +65,8 @@ export default function MemberDashboard() {
       try {
         const data = await getReimbursementsByPayeeUserId(userId);
         if (!cancelled) setReimbursements(data);
-      } catch (e: any) {
-        if (!cancelled) setErr(e?.message || "Failed to fetch reimbursements");
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Failed to fetch reimbursements");
       } finally {
         if (!cancelled) setLoading(false);
       }

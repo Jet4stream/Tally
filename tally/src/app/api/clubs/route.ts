@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Club created", data: club },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/clubs error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create club" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create club" },
       { status: 500 }
     );
   }
@@ -88,10 +88,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateClubController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/clubs error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update club" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update club" },
       { status: 500 }
     );
   }
@@ -110,10 +110,10 @@ export async function DELETE(req: Request) {
 
     const deleted = await deleteClubController(id);
     return NextResponse.json({ code: "SUCCESS", data: deleted });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/clubs error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete club" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete club" },
       { status: 500 }
     );
   }

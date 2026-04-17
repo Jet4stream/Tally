@@ -25,7 +25,7 @@ import {
 type LogEntry = {
   ts: string;
   label: string;
-  data?: any;
+  data?: unknown;
   error?: string;
 };
 
@@ -148,16 +148,15 @@ export default function BackendTestPage() {
   const lastCreatedIds = useMemo(() => {
     const ids: Record<string, string> = {};
     for (const entry of log) {
-      const d = entry.data;
+      const d = entry.data as Record<string, unknown> | null | undefined;
       if (!d) continue;
-      if (d?.id && typeof d.id === "string") {
-        // heuristics
-        if (d?.name) ids["clubId"] = d.id;
-        if (d?.clubId && d?.userId) ids["membershipId"] = d.id;
-        if (d?.userEmail && d?.expiresAt) ids["inviteId"] = d.id;
-        if (d?.title && d?.clubId) ids["sectionId"] = d.id;
-        if (d?.sectionId && d?.label) ids["budgetItemId"] = d.id;
-        if (d?.amountCents != null && d?.clubId) ids["reimbursementId"] = d.id;
+      if (d.id && typeof d.id === "string") {
+        if (d.name) ids["clubId"] = d.id;
+        if (d.clubId && d.userId) ids["membershipId"] = d.id;
+        if (d.userEmail && d.expiresAt) ids["inviteId"] = d.id;
+        if (d.title && d.clubId) ids["sectionId"] = d.id;
+        if (d.sectionId && d.label) ids["budgetItemId"] = d.id;
+        if (d.amountCents != null && d.clubId) ids["reimbursementId"] = d.id;
       }
     }
     return ids;
@@ -167,17 +166,18 @@ export default function BackendTestPage() {
     setLog((prev) => [{ ts: nowTs(), ...entry }, ...prev].slice(0, 50));
   };
 
-  const run = async (label: string, fn: () => Promise<any>) => {
+  const run = async (label: string, fn: () => Promise<unknown>) => {
     setError("");
     setBusy(true);
     try {
       const data = await fn();
       pushLog({ label, data });
       return data;
-    } catch (e: any) {
+    } catch (e) {
+      const axiosErr = e as { response?: { data?: { message?: string } }; message?: string };
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
+        axiosErr?.response?.data?.message ||
+        axiosErr?.message ||
         "Request failed (see console)";
       console.error(label, e);
       setError(msg);
@@ -287,8 +287,7 @@ export default function BackendTestPage() {
 
         receiptFileUrl: reimbReceiptUrl || null,
         generatedFormPdfUrl: reimbFormUrl || null,
-        packetPdfUrl: reimbPacketUrl || null,
-      } as any) // if your createReimbursement typing is strict, remove `as any` and align its type
+      })
     );
   };
 
@@ -371,7 +370,7 @@ export default function BackendTestPage() {
               <select
                 className="px-3 py-2 border border-gray-300 rounded-lg"
                 value={membershipRole}
-                onChange={(e) => setMembershipRole(e.target.value as any)}
+                onChange={(e) => setMembershipRole(e.target.value as "TREASURER" | "MEMBER")}
               >
                 <option value="MEMBER">MEMBER</option>
                 <option value="TREASURER">TREASURER</option>
@@ -405,7 +404,7 @@ export default function BackendTestPage() {
                 <select
                   className="px-3 py-2 border border-gray-300 rounded-lg"
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
+                  onChange={(e) => setInviteRole(e.target.value as "TREASURER" | "MEMBER")}
                 >
                   <option value="MEMBER">MEMBER</option>
                   <option value="TREASURER">TREASURER</option>
@@ -472,7 +471,7 @@ export default function BackendTestPage() {
               <select
                 className="px-3 py-2 border border-gray-300 rounded-lg"
                 value={itemCategory}
-                onChange={(e) => setItemCategory(e.target.value as any)}
+                onChange={(e) => setItemCategory(e.target.value as "FOOD" | "NONFOOD")}
               >
                 <option value="FOOD">FOOD</option>
                 <option value="NONFOOD">NONFOOD</option>

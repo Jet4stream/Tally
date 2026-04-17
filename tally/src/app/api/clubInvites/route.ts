@@ -22,10 +22,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Invitation created", data: invite },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/club-invitations error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create invitation" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create invitation" },
       { status: 500 }
     );
   }
@@ -97,10 +97,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateClubInviteController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/club-invitations error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update invitation" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update invitation" },
       { status: 500 }
     );
   }
@@ -133,10 +133,10 @@ export async function DELETE(req: Request) {
       { code: "ERROR", message: "Missing id OR (email and clubId)" },
       { status: 400 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/club-invitations error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete invitation" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete invitation" },
       { status: 500 }
     );
   }

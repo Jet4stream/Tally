@@ -3,10 +3,11 @@ import { useState } from "react";
 import DashboardContent from "./TCUDashboard";
 import ClubBudgetList from "./ClubBudgetList";
 import TCUBudgetDetailView from "./TCUBudgetDetailView";
+import type { Club } from "@prisma/client";
 
 export default function TCUTabSpacer() {
   const [activeTab, setActiveTab] = useState("reimbursements");
-  const [selectedClub, setSelectedClub] = useState<any>(null);
+  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
   return (
     <div>

@@ -33,11 +33,10 @@ export default function ClubMembers() {
     return memberships
       .filter((m) => m.user) // should always be true if type includes user
       .map((m) => {
-        const u: any = m.user;
+        const u = m.user;
         const name = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
         const email = u.email ?? "";
-        // change this if your field is phoneNumber vs phone
-        const phone = u.phoneNumber ?? u.phone ?? "—";
+        const phone = u.phoneNumber ?? "—";
 
         return { name: name || "—", email: email || "—", phone };
       })
@@ -56,8 +55,8 @@ export default function ClubMembers() {
       try {
         const data = await getClubInvitesByClubId(treasurerClubId);
         if (!cancelled) setInvites(data);
-      } catch (e: any) {
-        if (!cancelled) setInvitesErr(e?.message ?? "Failed to fetch invites");
+      } catch (e) {
+        if (!cancelled) setInvitesErr(e instanceof Error ? e.message : "Failed to fetch invites");
       } finally {
         if (!cancelled) setInvitesLoading(false);
       }
@@ -87,7 +86,7 @@ export default function ClubMembers() {
       setInvitesLoading(true);
       const updated = await getClubInvitesByClubId(treasurerClubId);
       setInvites(updated);
-    } catch (err: any) {
+    } catch {
       setMessage("Failed to send invite");
     } finally {
       setSending(false);

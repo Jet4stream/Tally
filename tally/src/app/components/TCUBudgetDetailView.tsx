@@ -1,10 +1,9 @@
 "use client";
-import Image from "next/image";
 import BudgetSheet from "./TreasurerBudgetSheet";
 import PendingClubReimbursements from "./PendingClubReimbursements";
-import pencilIcon from "../assests/pencil.svg";
+import type { Club } from "@prisma/client";
 
-export default function TCUBudgetDetailView({ club, onBack }: { club: any, onBack: () => void }) {
+export default function TCUBudgetDetailView({ club, onBack }: { club: Club; onBack: () => void }) {
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] py-8">
       <div className="mb-8">

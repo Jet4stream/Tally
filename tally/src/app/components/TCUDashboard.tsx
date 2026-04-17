@@ -12,8 +12,8 @@ import { GlobalRole } from "@prisma/client";
 export default function DashboardContent() {
   const [subTab, setSubTab] = useState<string>("unpaid");
   const [reimbursements, setReimbursements] = useState<ReimbursementWithPayee[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [, setLoading] = useState(false);
+  const [, setErr] = useState("");
 
   const { user, isLoaded } = useUser();
   const userId = user?.id;
@@ -91,11 +91,9 @@ export default function DashboardContent() {
         }
 
         if (!cancelled) setReimbursements(data);
-      } catch (e: any) {
-        const msg =
-          e?.response?.data?.message ||
-          e?.message ||
-          "Failed to fetch reimbursements";
+      } catch (e) {
+        const axiosErr = e as { response?: { data?: { message?: string } }; message?: string };
+        const msg = axiosErr?.response?.data?.message || axiosErr?.message || "Failed to fetch reimbursements";
         if (!cancelled) setErr(msg);
       } finally {
         if (!cancelled) setLoading(false);

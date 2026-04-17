@@ -7,7 +7,6 @@ import { useTreasurerStore } from "@/store/treasurerStore";
 export default function TreasurerHydrator() {
   const { user, isLoaded } = useUser();
 
-  const hydrate = useTreasurerStore((s) => s.hydrate);
   const refresh = useTreasurerStore((s) => s.refresh);
   const clear = useTreasurerStore((s) => s.clear);
 
@@ -26,7 +25,7 @@ export default function TreasurerHydrator() {
 
     // if you want to fetch only if missing, use hydrate(user.id) instead
     // hydrate(user.id);
-  }, [isLoaded, user?.id, refresh, clear]);
+  }, [isLoaded, user, refresh, clear]);
 
   return null;
 }

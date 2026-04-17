@@ -87,9 +87,10 @@ export default function CompleteAccountForm() {
       }
 
       router.push("/");
-    } catch (err: any) {
+    } catch (err) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(
-        err.response?.data?.message || "Failed to create account profile.",
+        axiosErr.response?.data?.message || "Failed to create account profile.",
       );
     } finally {
       setLoading(false);

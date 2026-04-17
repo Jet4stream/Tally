@@ -13,7 +13,6 @@ export default function Page() {
   const router = useRouter();
 
   const [isTreasurer, setIsTreasurer] = useState(false);
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -40,14 +39,14 @@ export default function Page() {
         const data = await res.json();
 
         const hasTreasurer = data.data?.some(
-          (m: any) => m.role === "TREASURER"
+          (m: { role: string }) => m.role === "TREASURER"
         );
 
         setIsTreasurer(hasTreasurer);
-      } catch (e) {
+      } catch {
         router.replace("/");
       } finally {
-        if (!cancelled) setChecking(false);
+        // nothing to update
       }
     })();
 

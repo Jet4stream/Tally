@@ -1,11 +1,12 @@
 import { useState } from "react";
+import type { ReimbursementWithPayee } from "@/types/reimbursement";
 
 export function usePdfModal() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeReimbursement, setActiveReimbursement] = useState<any>(null);
+  const [activeReimbursement, setActiveReimbursement] = useState<ReimbursementWithPayee | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
 
-  const handleOpenPdf = async (url: string, reimbursement: any) => {
+  const handleOpenPdf = async (url: string, reimbursement: ReimbursementWithPayee) => {
     if (!url) return;
     setLoadingPdf(true);
     try {

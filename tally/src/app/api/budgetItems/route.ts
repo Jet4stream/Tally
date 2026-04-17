@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       { code: "SUCCESS", message: "Budget item created", data: item },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/budget-items error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to create budget item" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to create budget item" },
       { status: 500 }
     );
   }
@@ -88,10 +88,10 @@ export async function PUT(req: Request) {
     const updateData = await req.json();
     const updated = await updateBudgetItemController(id, updateData);
     return NextResponse.json({ code: "SUCCESS", data: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/budget-items error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to update budget item" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to update budget item" },
       { status: 500 }
     );
   }
@@ -110,10 +110,10 @@ export async function DELETE(req: Request) {
 
     const deleted = await deleteBudgetItemController(id);
     return NextResponse.json({ code: "SUCCESS", data: deleted });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/budget-items error:", error);
     return NextResponse.json(
-      { code: "ERROR", message: error?.message ?? "Failed to delete budget item" },
+      { code: "ERROR", message: error instanceof Error ? error.message : "Failed to delete budget item" },
       { status: 500 }
     );
   }

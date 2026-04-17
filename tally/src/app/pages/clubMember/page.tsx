@@ -20,7 +20,9 @@ type InviteUI = {
   role: MembershipRole;
 };
 
-type InviteRaw = any;
+import type { ClubInvite, ClubMembership } from "@prisma/client";
+
+type InviteRaw = ClubInvite;
 
 function normalizeEmail(s: string) {
   return s.trim().toLowerCase();
@@ -57,7 +59,7 @@ export default function ClubInvitesClient({
   const setBusy = (clubId: string, on: boolean) => {
     setBusyClubIds((prev) => {
       const next = new Set(prev);
-      on ? next.add(clubId) : next.delete(clubId);
+      if (on) { next.add(clubId); } else { next.delete(clubId); }
       return next;
     });
   };
@@ -80,7 +82,7 @@ export default function ClubInvitesClient({
 
         if (cancelled) return;
 
-        const memberClubIds = new Set((memberships ?? []).map((m: any) => m.clubId));
+        const memberClubIds = new Set((memberships ?? []).map((m: ClubMembership) => m.clubId));
 
         const map = new Map<string, InviteUI>();
 
@@ -180,7 +182,7 @@ export default function ClubInvitesClient({
           </p>
 
           <h1 className="text-[34px] font-extrabold text-gray-900 font-[family-name:var(--font-public-sans)] leading-tight tracking-tight">
-            You've been invited
+            You&apos;ve been invited
           </h1>
 
           <p className="mt-3 text-[14px] text-gray-600 font-[family-name:var(--font-pt-sans)]">
