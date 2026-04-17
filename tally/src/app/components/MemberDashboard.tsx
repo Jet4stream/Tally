@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import DataTable from "./DataTable";
 import { useUser } from "@clerk/nextjs";
 import { getReimbursementsByPayeeUserId } from "@/lib/api/reimbursement";
@@ -54,7 +54,7 @@ export default function MemberDashboard() {
     };
   }, [reimbursements]);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     if (!isLoaded || !userId) return;
 
     let cancelled = false;
@@ -74,6 +74,11 @@ export default function MemberDashboard() {
 
     return () => { cancelled = true; };
   }, [isLoaded, userId]);
+
+  useEffect(() => {
+    const cleanup = fetchData();
+    return cleanup ?? undefined;
+  }, [fetchData]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-[32px] pt-[16px]">
@@ -99,8 +104,8 @@ export default function MemberDashboard() {
       <div className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)] overflow-y-auto">
         {loading && <p className="text-gray-400 text-sm">Loading...</p>}
         {err && <p className="text-red-500 text-sm">{err}</p>}
-        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={false} />}
-        {subTab === "paid" && <DataTable data={paidRows} showDelete={false} />}
+        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={false} onRefresh={fetchData} />}
+        {subTab === "paid" && <DataTable data={paidRows} showDelete={false} onRefresh={fetchData} />}
       </div>
     </div>
   );

@@ -1,13 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import DataTable from "./DataTable";
 import { useUser } from "@clerk/nextjs";
 import { getReimbursementsByClubId, getAllReimbursements } from "@/lib/api/reimbursement";
 import type { ReimbursementWithPayee } from "@/types/reimbursement";
 import ClubMembers from "./ClubMembers";
 import { useTreasurerStore } from "@/store/treasurerStore";
-import { getUserById } from "@/lib/api/user";
-import { GlobalRole } from "@prisma/client";
 
 export default function DashboardContent() {
   const [subTab, setSubTab] = useState<string>("unpaid");
@@ -19,6 +17,7 @@ export default function DashboardContent() {
   const userId = user?.id;
 
   const treasurerClubId = useTreasurerStore((s) => s.treasurerClubId);
+  const isTcuTreasury = useTreasurerStore((s) => s.isTCU);
 
   const { unpaidRows, paidRows } = useMemo(() => {
     const mapped = reimbursements.map((r) => {
@@ -61,9 +60,8 @@ export default function DashboardContent() {
     };
   }, [reimbursements]);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!userId) return;
+  const fetchData = useCallback(() => {
+    if (!isLoaded || !userId) return;
 
     let cancelled = false;
 
@@ -72,18 +70,12 @@ export default function DashboardContent() {
       setErr("");
 
       try {
-        const dbUser = await getUserById(userId);
-
-        const isTcuTreasury =
-          dbUser?.role === GlobalRole.TCU_TREASURER; 
-
         let data: ReimbursementWithPayee[] = [];
 
         if (isTcuTreasury) {
           data = await getAllReimbursements();
         } else {
           if (!treasurerClubId) {
-            // normal treasurer with no club selected yet -> don't throw
             data = [];
           } else {
             data = await getReimbursementsByClubId(treasurerClubId);
@@ -100,10 +92,13 @@ export default function DashboardContent() {
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, userId, treasurerClubId]);
+    return () => { cancelled = true; };
+  }, [isLoaded, userId, isTcuTreasury, treasurerClubId]);
+
+  useEffect(() => {
+    const cleanup = fetchData();
+    return cleanup ?? undefined;
+  }, [fetchData]);
 
 
   return (
@@ -136,8 +131,8 @@ export default function DashboardContent() {
       </div>
 
       <div className="h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)] overflow-y-auto">
-        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={false} />}
-        {subTab === "paid" && <DataTable data={paidRows} showDelete={false} />}
+        {subTab === "unpaid" && <DataTable data={unpaidRows} showDelete={false} onRefresh={fetchData} />}
+        {subTab === "paid" && <DataTable data={paidRows} showDelete={false} onRefresh={fetchData} />}
         {subTab === "members" && <ClubMembers />}
       </div>
     </div>

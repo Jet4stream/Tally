@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
 
 import trashIcon from "../assests/trash.svg";
 import paperclipIcon from "../assests/paperclip.svg";
@@ -10,7 +9,7 @@ import receiptIcon from "../assests/receipt.svg";
 
 import { deleteReimbursement, updateReimbursement } from "@/lib/api/reimbursement";
 import { getBudgetItemById, updateBudgetItem } from "@/lib/api/budgetItem";
-import { getUserById } from "@/lib/api/user";
+import { useTreasurerStore } from "@/store/treasurerStore";
 
 import { usePdfModal } from "@/hooks/usePdfModal";
 import { useReceiptModal } from "@/hooks/useReceiptModal";
@@ -38,17 +37,17 @@ type ReimbursementRow = {
 export default function DataTable({
   data,
   showDelete = true,
+  onRefresh,
 }: {
   data: ReimbursementRow[];
   showDelete?: boolean;
+  onRefresh?: () => void;
 }) {
-  const { user, isLoaded } = useUser();
-
   const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
   const { handleOpenReceipt } = useReceiptModal();
 
-  const [isTCU, setIsTCU] = useState(false);
-  const [loadingRole, setLoadingRole] = useState(true);
+  const isTCU = useTreasurerStore((s) => s.isTCU);
+  const loadingRole = useTreasurerStore((s) => s.loading);
 
   const [acting, setActing] = useState<"APPROVE" | "PAID" | "REJECT" | null>(null);
 
@@ -56,34 +55,6 @@ export default function DataTable({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectErr, setRejectErr] = useState("");
-
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setLoadingRole(true);
-
-        if (!user?.id) {
-          if (!cancelled) setIsTCU(false);
-          return;
-        }
-
-        const dbUser = await getUserById(user.id);
-        if (!cancelled) setIsTCU(dbUser?.role === "TCU_TREASURER");
-      } catch {
-        if (!cancelled) setIsTCU(false);
-      } finally {
-        if (!cancelled) setLoadingRole(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, user?.id]);
 
   const resetRejectUI = () => {
     setRejectOpen(false);
@@ -114,7 +85,7 @@ export default function DataTable({
       });
 
       closeAndReset();
-      window.location.reload();
+      if (onRefresh) { onRefresh(); } else { window.location.reload(); }
     } catch (e) {
       console.error("Approve failed:", e);
       alert("Approve failed.");
@@ -139,15 +110,13 @@ export default function DataTable({
       // Update budget ONLY when actually paid
       const item = await getBudgetItemById(budgetItemId);
       const newSpent = (item.spentCents ?? 0) + amountCents;
-      await updateBudgetItem(budgetItemId, { spentCents: newSpent });
-
-      await updateReimbursement(reimbursementId, {
-        status: "PAID",
-        paidAt: new Date(),
-      });
+      await Promise.all([
+        updateBudgetItem(budgetItemId, { spentCents: newSpent }),
+        updateReimbursement(reimbursementId, { status: "PAID", paidAt: new Date() }),
+      ]);
 
       closeAndReset();
-      window.location.reload();
+      if (onRefresh) { onRefresh(); } else { window.location.reload(); }
     } catch (e) {
       console.error("Paid failed:", e);
       alert("Paid failed. (Budget + reimbursement may be out of sync if one update succeeded.)");
@@ -183,7 +152,7 @@ export default function DataTable({
       });
 
       closeAndReset();
-      window.location.reload();
+      if (onRefresh) { onRefresh(); } else { window.location.reload(); }
     } catch (e) {
       console.error("Reject failed:", e);
       setRejectErr("Reject failed. Please try again.");
@@ -240,7 +209,7 @@ export default function DataTable({
                   onClick={async () => {
                     if (!confirm("Are you sure you want to delete this reimbursement?")) return;
                     await deleteReimbursement(r.id);
-                    window.location.reload();
+                    if (onRefresh) { onRefresh(); } else { window.location.reload(); }
                   }}
                 >
                   <Image src={trashIcon} alt="Delete" width={18} height={18} />

@@ -190,15 +190,15 @@ export default function BackendTestPage() {
 
   // ================== Actions ==================
 
-  const createClubAction = async () => {
-    const club = await run("CREATE club", () => createClub({ name: clubName }));
-    // auto-fill downstream fields
-    setMembershipClubId(club.id);
-    setInviteClubId(club.id);
-    setSectionClubId(club.id);
-    setReimbClubId(club.id);
-    setReimbClubName(club.name);
-  };
+  // const createClubAction = async () => {
+  //   const club = await run("CREATE club", () => createClub({ name: clubName }));
+  //   // auto-fill downstream fields
+  //   setMembershipClubId(club.id);
+  //   setInviteClubId(club.id);
+  //   setSectionClubId(club.id);
+  //   setReimbClubId(club.id);
+  //   setReimbClubName(club.name);
+  // };
 
   const listClubsAction = async () => {
     await run("LIST clubs", () => getAllClubs());
@@ -243,7 +243,7 @@ export default function BackendTestPage() {
         definition: sectionDefinition,
       })
     );
-    setItemSectionId(section.id);
+    // setItemSectionId(section.id);
   };
 
   const listSectionsAction = async () => {
@@ -345,9 +345,9 @@ export default function BackendTestPage() {
               onChange={(e) => setClubName(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button disabled={busy} onClick={createClubAction}>
-                Create Club
-              </Button>
+              {/* <Button disabled={busy} onClick={createClubAction}> */}
+                {/* Create Club
+              </Button> */}
               <Button disabled={busy} onClick={listClubsAction}>
                 List Clubs
               </Button>

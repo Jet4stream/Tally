@@ -61,17 +61,6 @@ export default function Page() {
     };
   }, [isLoaded, user?.id, treasurerClubId, router]);
 
-  // Optional: prevent flash of TCU page while redirecting/checking
-  if (checking) {
-    return (
-      <div>
-        <NavBar title="TCU Treasury" />
-        <div className="px-4 sm:px-6 lg:px-[32px]">
-          <p className="text-white/90">Checking access...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>

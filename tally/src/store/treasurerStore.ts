@@ -4,10 +4,12 @@
 import { create } from "zustand";
 import type { ClubMembershipWithUser } from "@/types/clubMembership";
 import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
+import { getUserByClerkId } from "@/lib/api/user";
 
 type TreasurerState = {
   treasurerClubId: string | null;
   memberships: ClubMembershipWithUser[];
+  isTCU: boolean;
   loading: boolean;
   error: string | null;
 
@@ -19,6 +21,7 @@ type TreasurerState = {
 export const useTreasurerStore = create<TreasurerState>((set, get) => ({
   treasurerClubId: null,
   memberships: [],
+  isTCU: false,
   loading: false,
   error: null,
 
@@ -30,16 +33,21 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      const data = await getTreasurerClubMembers(userId);
+      const [data, dbUser] = await Promise.all([
+        getTreasurerClubMembers(userId),
+        getUserByClerkId(userId),
+      ]);
       set({
         treasurerClubId: data?.clubId ?? null,
         memberships: data?.memberships ?? [],
+        isTCU: dbUser?.role === "TCU_TREASURER",
         loading: false,
       });
     } catch (e) {
       set({
         treasurerClubId: null,
         memberships: [],
+        isTCU: false,
         loading: false,
         error: e instanceof Error ? e.message : "Failed to load treasurer info",
       });
@@ -49,21 +57,26 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
   refresh: async (userId) => {
     set({ loading: true, error: null });
     try {
-      const data = await getTreasurerClubMembers(userId);
+      const [data, dbUser] = await Promise.all([
+        getTreasurerClubMembers(userId),
+        getUserByClerkId(userId),
+      ]);
       set({
         treasurerClubId: data?.clubId ?? null,
         memberships: data?.memberships ?? [],
+        isTCU: dbUser?.role === "TCU_TREASURER",
         loading: false,
       });
     } catch (e) {
       set({
         treasurerClubId: null,
         memberships: [],
+        isTCU: false,
         loading: false,
         error: e instanceof Error ? e.message : "Failed to refresh treasurer info",
       });
     }
   },
 
-  clear: () => set({ treasurerClubId: null, memberships: [], loading: false, error: null }),
+  clear: () => set({ treasurerClubId: null, memberships: [], isTCU: false, loading: false, error: null }),
 }));
