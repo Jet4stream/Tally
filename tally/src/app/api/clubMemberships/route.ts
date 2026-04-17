@@ -56,6 +56,11 @@ export async function GET(req: Request) {
 
     const treasurerUserId = searchParams.get("treasurerUserId");
 
+    // const isInternalRequest = req.headers.get("x-internal-request") === process.env.INTERNAL_SECRET;
+    // if (!isInternalRequest) {
+    //   return Response.json({ error: "Forbidden" }, { status: 403 })
+    // }
+
     if (id) {
       const membership = await getOneClubMembershipController(id);
       if (!membership) {

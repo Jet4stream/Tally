@@ -42,6 +42,11 @@ export async function GET(req: Request) {
     const id = searchParams.get("id");
     const clubId = searchParams.get("clubId");
 
+    // const isInternalRequest = req.headers.get("x-internal-request") === process.env.INTERNAL_SECRET;
+    // if (!isInternalRequest) {
+    //   return Response.json({ error: "Forbidden" }, { status: 403 })
+    // }
+
     if (id) {
       const section = await getOneBudgetSectionController(id);
       if (!section) {

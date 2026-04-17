@@ -46,6 +46,11 @@ export async function GET(req: Request) {
     const clubId = searchParams.get("clubId");
     const userEmail = searchParams.get("userEmail");
 
+    // const isInternalRequest = req.headers.get("x-internal-request") === process.env.INTERNAL_SECRET;
+    // if (!isInternalRequest) {
+    //   return Response.json({ error: "Forbidden" }, { status: 403 })
+    // }
+
     if (id) {
       const invite = await getOneClubInviteController(id);
       if (!invite) {

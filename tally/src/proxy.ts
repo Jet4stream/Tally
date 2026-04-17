@@ -13,6 +13,10 @@ const isAuthPage = createRouteMatcher([
   "/sign-up(.*)",
 ]);
 
+const isAdminApiRoute = createRouteMatcher([
+  "/api/users(.*)",  // whatever routes you want to protect
+]);
+
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 

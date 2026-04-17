@@ -55,15 +55,7 @@ export default function Page() {
       cancelled = true;
     };
   }, [isLoaded, user?.id, router]);
-
-  if (checking) {
-    return (
-      <div className="p-6 text-black">
-        Checking access...
-      </div>
-    );
-  }
-
+  
   return (
     <div>
       <div className="sticky top-0 z-50">

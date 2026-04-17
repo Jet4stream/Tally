@@ -10,6 +10,7 @@ import {
   updateUserController,
   deleteUserController,
 } from "./controller";
+import { auth } from "@clerk/nextjs/server";
 
 /**
  * POST /api/users
@@ -51,6 +52,18 @@ export async function GET(req: Request) {
     const email = searchParams.get("email");
     const role = searchParams.get("role") as GlobalRole | null;
 
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
+    }
+
+    // 2. Get the logged in user's role from DB
+    const requestingUser = await getUserByClerkIdController(userId);
+    if (!requestingUser) {
+      return NextResponse.json({ code: "USER_NOT_FOUND" }, { status: 404 });
+    }
+    
+
     if (clerkId) {
       const user = await getUserByClerkIdController(clerkId);
       if (!user) {
@@ -89,6 +102,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ code: "SUCCESS", data: users });
     }
 
+    if (requestingUser.role !== GlobalRole.TCU_TREASURER) {
+      return NextResponse.json({ code: "FORBIDDEN" }, { status: 403 });
+    }
     const users = await getAllUsersController();
     return NextResponse.json({ code: "SUCCESS", data: users });
   } catch (error) {

@@ -49,7 +49,11 @@ export const createUser = async (
  */
 export const getUserById = async (id: string): Promise<User> => {
   const response = await axios.get<ApiResponse<User>>(
-    `/api/users?id=${encodeURIComponent(id)}`
+    `/api/users?id=${encodeURIComponent(id)}`, {
+      headers: {
+        'x-internal-request': process.env.INTERNAL_SECRET
+      }
+    }
   );
 
   return response.data.data;
@@ -62,7 +66,11 @@ export const getUserByClerkId = async (
   clerkId: string
 ): Promise<User | null> => {
   const response = await axios.get<ApiResponse<User | null>>(
-    `/api/users?clerkId=${encodeURIComponent(clerkId)}`
+    `/api/users?clerkId=${encodeURIComponent(clerkId)}`, {
+      headers: {
+        'x-internal-request': process.env.INTERNAL_SECRET
+      }
+    }
   );
 
   return response.data.data;
@@ -75,7 +83,11 @@ export const getUserByEmail = async (
   email: string
 ): Promise<User | null> => {
   const response = await axios.get<ApiResponse<User | null>>(
-    `/api/users?email=${encodeURIComponent(email)}`
+    `/api/users?email=${encodeURIComponent(email)}`, {
+      headers: {
+        'x-internal-request': process.env.INTERNAL_SECRET
+      }
+    }
   );
 
   return response.data.data;
@@ -88,7 +100,11 @@ export const getUsersByRole = async (
   role: GlobalRole
 ): Promise<User[]> => {
   const response = await axios.get<ApiResponse<User[]>>(
-    `/api/users?role=${role}`
+    `/api/users?role=${role}`, {
+      headers: {
+        'x-internal-request': process.env.INTERNAL_SECRET
+      }
+    }
   );
 
   return response.data.data;
@@ -99,7 +115,11 @@ export const getUsersByRole = async (
  */
 export const getAllUsers = async (): Promise<User[]> => {
   const response = await axios.get<ApiResponse<User[]>>(
-    "/api/users"
+    "/api/users", {
+      headers: {
+        'x-internal-request': process.env.INTERNAL_SECRET
+      }
+    }
   );
 
   return response.data.data;
