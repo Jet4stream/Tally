@@ -34,7 +34,7 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const [data, dbUser] = await Promise.all([
-        getTreasurerClubMembers(userId),
+        getTreasurerClubMembers(userId).catch(() => null),
         getUserByClerkId(userId),
       ]);
       set({
@@ -58,7 +58,7 @@ export const useTreasurerStore = create<TreasurerState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const [data, dbUser] = await Promise.all([
-        getTreasurerClubMembers(userId),
+        getTreasurerClubMembers(userId).catch(() => null),
         getUserByClerkId(userId),
       ]);
       set({

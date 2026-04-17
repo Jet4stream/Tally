@@ -43,7 +43,7 @@ export default function DataTable({
   showDelete?: boolean;
   onRefresh?: () => void;
 }) {
-  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal();
+  const { pdfUrl, activeReimbursement, loadingPdf, handleOpenPdf, closeModal } = usePdfModal<ReimbursementRow>();
   const { handleOpenReceipt } = useReceiptModal();
 
   const isTCU = useTreasurerStore((s) => s.isTCU);

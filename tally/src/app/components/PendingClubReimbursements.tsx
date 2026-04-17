@@ -21,7 +21,7 @@ import { useReceiptModal } from "@/hooks/useReceiptModal";
 
 export default function PendingClubReimbursements({ clubId }: { clubId: string }) {
   const { user, isLoaded } = useUser();
-  const { pdfUrl, activeReimbursement, handleOpenPdf, closeModal } = usePdfModal();
+  const { pdfUrl, activeReimbursement, handleOpenPdf, closeModal } = usePdfModal<ReimbursementWithPayee>();
   const { handleOpenReceipt } = useReceiptModal();
 
   const [pending, setPending] = useState<ReimbursementWithPayee[]>([]);
@@ -31,7 +31,8 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
   const [loadingRole, setLoadingRole] = useState(true);
   const [approving, setApproving] = useState(false);
 
-  const parseDescription = (raw: string) => {
+  const parseDescription = (raw: string | null) => {
+    if (!raw) return "";
     try {
       const parsed = JSON.parse(raw);
       if (parsed.expenses?.length) {
@@ -190,7 +191,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
                       width={18}
                       height={18}
                       className="cursor-pointer"
-                      onClick={() => handleOpenPdf(r.generatedFormPdfUrl, r)}
+                      onClick={() => { if (r.generatedFormPdfUrl) handleOpenPdf(r.generatedFormPdfUrl, r); }}
                     />
                   </div>
                 </div>
