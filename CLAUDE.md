@@ -12,12 +12,12 @@ The app lives in the `tally/` subdirectory — all commands below should be run 
 
 ```bash
 cd tally
-npm run dev      # Dev server at http://localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint
+npm run dev        # Dev server at http://localhost:3000
+npm run build      # Production build
+npm run lint       # ESLint
+npm run test       # Run unit tests (Vitest)
+npm run test:watch # Watch mode
 ```
-
-No test suite exists currently.
 
 ## Architecture
 
@@ -29,7 +29,7 @@ No test suite exists currently.
 - `src/app/api/<resource>/route.ts` — HTTP handler (POST/GET/PUT/DELETE), calls controller
 - `src/app/api/<resource>/controller.ts` — Zod validation + Prisma business logic
 
-All API responses use the format: `{ code: "SUCCESS" | "ERROR", message: string, data: any }`.
+All API responses use the format: `{ code: "SUCCESS" | "ERROR", message: string, data: unknown }`.
 
 **Client-side API layer** lives in `src/lib/api/<resource>.ts` — Axios wrappers that call the API routes. Components import from here, not from `fetch` directly.
 
@@ -56,6 +56,19 @@ Prisma client singleton is in `src/lib/prisma.ts`.
 ### Path alias
 
 `@/*` maps to `src/*` — use this for all imports within the app.
+
+## Testing
+
+Unit tests live in `tally/src/__tests__/api/` — one file per API controller. The framework is **Vitest** with `vitest-mock-extended` for typed Prisma mocks.
+
+**Mocking strategy:**
+- Prisma: mocked via `src/__tests__/mocks/prisma.ts` (auto-reset before each test via `src/__tests__/setup.ts`)
+- Nodemailer: `vi.mock("nodemailer", ...)` in `clubInvites.test.ts`
+- Supabase: `vi.mock("@/lib/supabase/admin", ...)` in `reimbursements.test.ts`
+
+Each test file covers: happy paths, Zod validation failures, not-found cases, and resource-specific edge cases (duplicate memberships, email normalization, Supabase file deletion, role-based access).
+
+**CI**: `.github/workflows/ci.yml` runs `npm run test` and `npm run lint` on every push and pull request to any branch.
 
 ## Environment Variables
 

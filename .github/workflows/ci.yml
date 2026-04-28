@@ -29,3 +29,36 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+  build:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    defaults:
+      run:
+        working-directory: tally
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+      CLERK_SECRET_KEY: sk_test_placeholder
+      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      DIRECT_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SUPABASE_URL: https://placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+      SUPABASE_BUCKET: reimbursements
+      INTERNAL_SECRET: placeholder
+      EMAIL_USER: placeholder@example.com
+      EMAIL_PASS: placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tally/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
