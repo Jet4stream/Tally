@@ -25,7 +25,7 @@ export default function TCUBudgetDetailView({ club, onBack }: { club: Club; onBa
               {club.name}
             </h1>
             <p className="text-gray-900 font-medium font-[family-name:var(--font-public-sans)]">
-              Dept ID: {club.id.slice(0, 8).toUpperCase()}
+              Dept ID: A901{club.deptId}
             </p>
           </div>
         </div>

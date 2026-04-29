@@ -34,9 +34,15 @@ export async function getOneBudgetSectionController(id: string) {
   return prisma.budgetSection.findUnique({ where: { id } });
 }
 
-export async function getBudgetSectionsByClubIdController(clubId: string) {
+export async function getBudgetSectionsByClubIdController(
+  clubId: string,
+  year?: number
+) {
   return prisma.budgetSection.findMany({
-    where: { clubId },
+    where: {
+      clubId,
+      ...(year !== undefined && { year }), // conditional filter
+    },
     orderBy: { createdAt: "desc" },
   });
 }

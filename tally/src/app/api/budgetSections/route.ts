@@ -41,6 +41,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const clubId = searchParams.get("clubId");
+    const yearParam = searchParams.get("year");
+
+    const year = yearParam ? parseInt(yearParam, 10) : undefined;
 
     // const isInternalRequest = req.headers.get("x-internal-request") === process.env.INTERNAL_SECRET;
     // if (!isInternalRequest) {
@@ -59,7 +62,7 @@ export async function GET(req: Request) {
     }
 
     if (clubId) {
-      const sections = await getBudgetSectionsByClubIdController(clubId);
+      const sections = await getBudgetSectionsByClubIdController(clubId, year);
       return NextResponse.json({ code: "SUCCESS", data: sections });
     }
 

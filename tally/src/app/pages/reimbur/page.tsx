@@ -100,7 +100,7 @@ export default function RequestReimbursement() {
 
     (async () => {
       try {
-        const sections = await getBudgetSectionsByClubId(treasurerClubId);
+        const sections = await getBudgetSectionsByClubId(treasurerClubId, 2026);
         if (cancelled) return;
         setBudgetSections(sections);
       } catch (e) {

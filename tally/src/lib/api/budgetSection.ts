@@ -23,10 +23,31 @@ export const getBudgetSectionById = async (id: string): Promise<BudgetSection> =
   return res.data.data;
 };
 
-export const getBudgetSectionsByClubId = async (clubId: string): Promise<BudgetSection[]> => {
+// export const getBudgetSectionsByClubId = async (clubId: string): Promise<BudgetSection[]> => {
+//   const res = await axios.get<ApiResponse<BudgetSection[]>>(
+//     `/api/budgetSections?clubId=${encodeURIComponent(clubId)}`
+//   );
+//   return res.data.data;
+// };
+
+export const getBudgetSectionsByClubId = async (
+  clubId: string,
+  year?: number
+): Promise<BudgetSection[]> => {
+  const params = new URLSearchParams({
+    clubId: encodeURIComponent(clubId),
+  });
+
+  if (year !== undefined) {
+    params.append("year", year.toString());
+  }
+  
+  console.log(`/api/budget-sections?${params.toString()}`);
+
   const res = await axios.get<ApiResponse<BudgetSection[]>>(
-    `/api/budgetSections?clubId=${encodeURIComponent(clubId)}`
+    `/api/budgetSections?${params.toString()}`
   );
+
   return res.data.data;
 };
 

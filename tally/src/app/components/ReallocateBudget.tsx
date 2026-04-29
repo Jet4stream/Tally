@@ -83,7 +83,7 @@ export default function ReallocateBudget({ clubId, onReallocated }: ReallocateBu
     let cancelled = false;
     (async () => {
       try {
-        const secs = await getBudgetSectionsByClubId(clubId);
+        const secs = await getBudgetSectionsByClubId(clubId, 2026);
         if (!cancelled) setSections(secs);
       } catch (e) {
         console.error("Failed to fetch budget sections:", e);

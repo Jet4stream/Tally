@@ -98,7 +98,7 @@ export default function BudgetSheet({
     let cancelled = false;
     (async () => {
       try {
-        const secs = await getBudgetSectionsByClubId(treasurerClubId);
+        const secs = await getBudgetSectionsByClubId(treasurerClubId, 2026);
         if (!cancelled) setSections(secs);
       } catch (e) {
         console.error("Failed to fetch budget sections:", e);
