@@ -105,10 +105,17 @@ export default function DataTable({
       return;
     }
 
+    // If not enough budget, prevent marking as paid and show error
+    const item = await getBudgetItemById(budgetItemId);
+    const availableCents = (item.allocatedCents ?? 0) - (item.spentCents ?? 0);
+    if (amountCents > availableCents) {
+      alert(`Not enough budget available. Available: $${(availableCents / 100).toFixed(2)}, Needed: $${(amountCents / 100).toFixed(2)}`);
+      return;
+    }
+
     setActing("PAID");
     try {
       // Update budget ONLY when actually paid
-      const item = await getBudgetItemById(budgetItemId);
       const newSpent = (item.spentCents ?? 0) + amountCents;
       await Promise.all([
         updateBudgetItem(budgetItemId, { spentCents: newSpent }),

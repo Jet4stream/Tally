@@ -10,7 +10,7 @@ import { useTreasurerStore } from "@/store/treasurerStore";
 
 // import { getTreasurerClubMembers } from "@/lib/api/clubMembership";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
-import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
+import { getBudgetItemById, getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
 
 import { fillReimbursementPDF } from "@/lib/fillReimbursementPDF";
 import { getClubById } from "@/lib/api/club";
@@ -172,6 +172,14 @@ export default function RequestReimbursement() {
     if (!selectedMemberId) return;
     if (!selectedItemId) return;
     if (!canSubmit) return;
+
+    // If amount asked for is greater than what's left in the budget, prevent submission and show error
+    const item = await getBudgetItemById(selectedItemId);
+    const availableCents = (item.allocatedCents ?? 0) - (item.spentCents ?? 0);
+    if (expenseTotal > availableCents / 100) {
+      alert(`Not enough budget available. Available: $${(availableCents / 100).toFixed(2)}, Needed: $${expenseTotal.toFixed(2)}`);
+      return;
+    }
 
     try {
       setSubmitting(true);
