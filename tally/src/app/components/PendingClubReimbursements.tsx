@@ -19,7 +19,7 @@ import { useReceiptModal } from "@/hooks/useReceiptModal";
 
 
 
-export default function PendingClubReimbursements({ clubId }: { clubId: string }) {
+export default function PendingClubReimbursements({ clubId, disableCollapse = false }: { clubId: string; disableCollapse?: boolean }) {
   const { user, isLoaded } = useUser();
   const { pdfUrl, activeReimbursement, handleOpenPdf, closeModal } = usePdfModal<ReimbursementWithPayee>();
   const { handleOpenReceipt } = useReceiptModal();
@@ -129,7 +129,7 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
 
   return (
     <div className={`transition-all duration-300 shrink-0 ${isOpen ? "w-96 ml-6" : "w-auto ml-4"}`}>
-      {!isOpen ? (
+      {!disableCollapse && !isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
           className="flex flex-col items-center gap-3 bg-white border border-r-0 border-gray-300 rounded-l-xl px-3 py-24 hover:bg-gray-50 transition-colors shadow-sm"
@@ -141,12 +141,14 @@ export default function PendingClubReimbursements({ clubId }: { clubId: string }
         </button>
       ) : (
         <div className="border border-gray-200 rounded-lg bg-white p-7 shadow-sm">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-medium mb-4 block"
-          >
-            »
-          </button>
+          {!disableCollapse && (
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-gray-400 hover:text-gray-600 text-2xl font-medium mb-4 block"
+            >
+              »
+            </button>
+          )}
 
           <h2 className="font-semibold text-[28px] text-gray-900 mb-2">
             Pending Reimbursements
