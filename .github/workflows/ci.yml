@@ -37,17 +37,17 @@ jobs:
       run:
         working-directory: tally
     env:
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
-      CLERK_SECRET_KEY: sk_test_placeholder
-      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
-      DIRECT_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      INTERNAL_SECRET: ${{ secrets.INTERNAL_SECRET }}
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      SUPABASE_URL: https://placeholder.supabase.co
-      SUPABASE_SERVICE_ROLE_KEY: placeholder
       SUPABASE_BUCKET: reimbursements
-      INTERNAL_SECRET: placeholder
-      EMAIL_USER: placeholder@example.com
-      EMAIL_PASS: placeholder
     steps:
       - uses: actions/checkout@v4
 
