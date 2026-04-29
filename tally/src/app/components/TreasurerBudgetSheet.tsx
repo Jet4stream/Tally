@@ -6,7 +6,8 @@ import { useUser } from "@clerk/nextjs";
 import { BudgetCategory } from "@prisma/client";
 import { useTreasurerStore } from "@/store/treasurerStore";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
-import { getBudgetItemsBySectionId, updateBudgetItem } from "@/lib/api/budgetItem";
+import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
+import ReallocateBudget from "./ReallocateBudget";
 
 function moneyFromCents(n: number) {
   return n / 100;
@@ -56,41 +57,6 @@ function rollupItems(items: BudgetItem[]): Rollup {
   };
 }
 
-function centsFromDollarsInput(s: string) {
-  const n = Number(s);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.round(n * 100);
-}
-
-type Option = {
-  value: string; // itemId
-  label: string; // "Section - Item"
-  item: BudgetItem;
-  section: BudgetSection;
-};
-
-function buildOptions(
-  sections: BudgetSection[],
-  itemsBySectionId: Record<string, BudgetItem[]>,
-  kind: "Food" | "Non-Food"
-): Option[] {
-  const opts: Option[] = [];
-  for (const sec of sections) {
-    const items = itemsBySectionId[sec.id] ?? [];
-    for (const it of items) {
-      if (getItemKind(it) !== kind) continue;
-      opts.push({
-        value: it.id,
-        label: `${sec.title} - ${it.label}`,
-        item: it,
-        section: sec,
-      });
-    }
-  }
-  opts.sort((a, b) => a.label.localeCompare(b.label));
-  return opts;
-}
-
 interface BudgetSheetProps {
   forcedClubId?: string;
   hideReallocate?: boolean;
@@ -113,17 +79,11 @@ export default function BudgetSheet({
   >({});
   const [itemsLoading, setItemsLoading] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // --- Reallocate state ---
   const [reallocateOpen, setReallocateOpen] = useState(true);
-  const [reallocateType, setReallocateType] = useState<"Food" | "Non-Food">(
-    "Food"
-  );
-  const [reallocateAmount, setReallocateAmount] = useState("");
-  const [reallocateFromId, setReallocateFromId] = useState<string>("");
-  const [reallocateToId, setReallocateToId] = useState<string>("");
-  const [reallocateSaving, setReallocateSaving] = useState(false);
-  const [reallocateError, setReallocateError] = useState<string>("");
+
+  const refreshItems = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     if (forcedClubId) {
@@ -148,7 +108,7 @@ export default function BudgetSheet({
     return () => {
       cancelled = true;
     };
-  }, [treasurerClubId]);
+  }, [treasurerClubId, reloadKey]);
 
   useEffect(() => {
     if (sections.length === 0) return;
@@ -211,96 +171,6 @@ export default function BudgetSheet({
       remaining: r.remaining,
     };
   }, [itemsBySectionId]);
-
-  const reallocateOptions = useMemo(() => {
-    return buildOptions(sections, itemsBySectionId, reallocateType);
-  }, [sections, itemsBySectionId, reallocateType]);
-
-  const fromOpt = useMemo(
-    () => reallocateOptions.find((o) => o.value === reallocateFromId),
-    [reallocateOptions, reallocateFromId]
-  );
-
-  const toOpt = useMemo(
-    () => reallocateOptions.find((o) => o.value === reallocateToId),
-    [reallocateOptions, reallocateToId]
-  );
-
-  useEffect(() => {
-    // reset selections when switching type
-    setReallocateFromId("");
-    setReallocateToId("");
-    setReallocateError("");
-  }, [reallocateType]);
-
-  const handleSaveReallocation = async () => {
-    setReallocateError("");
-
-    const cents = centsFromDollarsInput(reallocateAmount);
-    if (!cents) {
-      setReallocateError("Enter a valid amount greater than 0.");
-      return;
-    }
-    if (!fromOpt || !toOpt) {
-      setReallocateError("Select both an event to take from and an event to add to.");
-      return;
-    }
-    if (fromOpt.value === toOpt.value) {
-      setReallocateError("Choose two different events.");
-      return;
-    }
-
-    // Validate remaining in FROM (allocated - spent)
-    const fromAllocated = Number(fromOpt.item.allocatedCents ?? 0);
-    const fromSpent = Number(fromOpt.item.spentCents ?? 0);
-    const fromRemaining = fromAllocated - fromSpent;
-
-    if (cents > fromRemaining) {
-      setReallocateError(
-        `Not enough remaining in "${fromOpt.label}". Remaining is ${formatMoney(
-          moneyFromCents(fromRemaining)
-        )}.`
-      );
-      return;
-    }
-
-    const newFromAllocated = fromAllocated - cents;
-    const toAllocated = Number(toOpt.item.allocatedCents ?? 0);
-    const newToAllocated = toAllocated + cents;
-
-    setReallocateSaving(true);
-    try {
-      // NOTE: Not atomic (two calls). Works for now.
-      await updateBudgetItem(fromOpt.value, { allocatedCents: newFromAllocated });
-      await updateBudgetItem(toOpt.value, { allocatedCents: newToAllocated });
-
-      // Patch local state so UI updates instantly
-      setItemsBySectionId((prev) => {
-        const next: Record<string, BudgetItem[]> = { ...prev };
-
-        const patch = (sectionId: string, itemId: string, allocatedCents: number) => {
-          next[sectionId] = (next[sectionId] ?? []).map((it) =>
-            it.id === itemId ? { ...it, allocatedCents } : it
-          );
-        };
-
-        patch(fromOpt.item.sectionId, fromOpt.value, newFromAllocated);
-        patch(toOpt.item.sectionId, toOpt.value, newToAllocated);
-
-        return next;
-      });
-
-      // clear + close
-      setReallocateAmount("");
-      setReallocateFromId("");
-      setReallocateToId("");
-    } catch (e) {
-      console.error("Reallocation failed:", e);
-      setReallocateError("Failed to save changes. Please try again.");
-    } finally {
-      setReallocateSaving(false);
-    }
-  };
 
   return (
     <div className="relative flex p-6 bg-white min-h-full transition-all duration-300">
@@ -475,7 +345,7 @@ export default function BudgetSheet({
         </div>
       </div>
 
-      {!hideReallocate && (
+      {!hideReallocate && treasurerClubId && (
         <div
           className={`transition-all duration-300 shrink-0 ${
             reallocateOpen ? "w-96 ml-6" : "w-auto ml-4"
@@ -493,125 +363,16 @@ export default function BudgetSheet({
             </button>
           ) : (
             <div className="border border-gray-200 rounded-lg bg-white p-7">
-              <div className="mb-3">
-                <button
-                  onClick={() => setReallocateOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-medium mb-4 block"
-                >
-                  »
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-700 text-xl">⇄</span>
-                  <h2 className="font-semibold font-[family-name:var(--font-public-sans)] text-[28px] leading-none tracking-normal text-gray-900">
-                    Reallocate Budget
-                  </h2>
-                </div>
-              </div>
-
-              <p className="text-gray-500 text-xs mb-4 font-[family-name:var(--font-pt-sans)]">
-                Move money between events. These changes will be reflected for you and TCU.
-              </p>
-
-              <div className="flex items-center bg-gray-100 rounded-full p-1 mb-4 w-fit">
-                {(["Food", "Non-Food"] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setReallocateType(type)}
-                    className={`px-4 py-1.5 rounded-full text-sm transition-all duration-200 font-[family-name:var(--font-pt-sans)] ${
-                      reallocateType === type
-                        ? "bg-white text-gray-900 font-bold shadow-sm"
-                        : "text-gray-400 font-normal"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mb-3">
-                <label className="text-xs text-gray-500 mb-1 block font-[family-name:var(--font-pt-sans)]">
-                  Amount to Move
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                    $
-                  </span>
-                  <input
-                    className="w-full border border-gray-200 rounded-lg pl-6 pr-3 py-2 text-sm outline-none focus:border-[#3172AE] font-[family-name:var(--font-pt-sans)]"
-                    value={reallocateAmount}
-                    onChange={(e) => setReallocateAmount(e.target.value)}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label className="text-xs text-gray-500 mb-1 block font-[family-name:var(--font-pt-sans)]">
-                  Event Taking From
-                </label>
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#3172AE] font-[family-name:var(--font-pt-sans)] bg-white"
-                  value={reallocateFromId}
-                  onChange={(e) => setReallocateFromId(e.target.value)}
-                >
-                  <option value="" disabled>
-                    Select…
-                  </option>
-                  {reallocateOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-
-                {fromOpt && (
-                  <p className="mt-1 text-[11px] text-gray-500 font-[family-name:var(--font-pt-sans)]">
-                    Remaining:{" "}
-                    {formatMoney(
-                      moneyFromCents(
-                        (Number(fromOpt.item.allocatedCents) || 0) -
-                          (Number(fromOpt.item.spentCents) || 0)
-                      )
-                    )}
-                  </p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label className="text-xs text-gray-500 mb-1 block font-[family-name:var(--font-pt-sans)]">
-                  Event Adding To
-                </label>
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#3172AE] font-[family-name:var(--font-pt-sans)] bg-white"
-                  value={reallocateToId}
-                  onChange={(e) => setReallocateToId(e.target.value)}
-                >
-                  <option value="" disabled>
-                    Select…
-                  </option>
-                  {reallocateOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {reallocateError && (
-                <div className="text-red-600 text-xs mb-3 font-[family-name:var(--font-pt-sans)]">
-                  {reallocateError}
-                </div>
-              )}
-
               <button
-                onClick={handleSaveReallocation}
-                disabled={reallocateSaving}
-                className="w-full bg-[#3172AE] text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-[#2860a0] transition-colors font-[family-name:var(--font-public-sans)] disabled:opacity-50"
+                onClick={() => setReallocateOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-medium mb-4 block"
               >
-                {reallocateSaving ? "Saving..." : "Save Changes"}
+                »
               </button>
+              <ReallocateBudget
+                clubId={treasurerClubId}
+                onReallocated={refreshItems}
+              />
             </div>
           )}
         </div>
