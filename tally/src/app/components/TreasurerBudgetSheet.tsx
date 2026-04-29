@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BudgetSection, BudgetItem } from "@prisma/client";
 import { useUser } from "@clerk/nextjs";
 import { BudgetCategory } from "@prisma/client";
+import Link from "next/link";
 import { useTreasurerStore } from "@/store/treasurerStore";
 import { getBudgetSectionsByClubId } from "@/lib/api/budgetSection";
 import { getBudgetItemsBySectionId } from "@/lib/api/budgetItem";
@@ -82,6 +83,7 @@ export default function BudgetSheet({
   const [reloadKey, setReloadKey] = useState(0);
 
   const [reallocateOpen, setReallocateOpen] = useState(true);
+  const currentYear = 2026;
 
   const refreshItems = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -98,7 +100,7 @@ export default function BudgetSheet({
     let cancelled = false;
     (async () => {
       try {
-        const secs = await getBudgetSectionsByClubId(treasurerClubId, 2026);
+        const secs = await getBudgetSectionsByClubId(treasurerClubId, currentYear);
         if (!cancelled) setSections(secs);
       } catch (e) {
         console.error("Failed to fetch budget sections:", e);
@@ -177,11 +179,21 @@ export default function BudgetSheet({
       <div className="flex-1 min-w-0">
         <div className="flex items-end justify-between mb-4">
           <h1 className="font-semibold font-[family-name:var(--font-public-sans)] text-[36px] leading-none tracking-normal text-gray-900">
-            2025-2026 Academic Year
+            {currentYear - 1}-{currentYear} Academic Year
           </h1>
-          {itemsLoading && (
-            <span className="text-xs text-gray-400">Loading line items…</span>
-          )}
+          <div className="flex items-center gap-3">
+            {itemsLoading && (
+              <span className="text-xs text-gray-400">Loading line items…</span>
+            )}
+            {treasurerClubId && (
+              <Link
+                href={`/pages/budgetEditor?clubId=${treasurerClubId}&year=${currentYear + 1}`}
+                className="text-sm font-semibold text-[#3172AE] border border-[#3172AE] rounded-lg px-4 py-2 hover:bg-blue-50 transition-colors font-[family-name:var(--font-public-sans)] whitespace-nowrap"
+              >
+                Next Year&apos;s Budget →
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end items-center gap-1 text-xs mb-3 pr-10">

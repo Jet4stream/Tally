@@ -5,11 +5,13 @@ export const createBudgetSectionSchema = z.object({
   clubId: z.string().uuid(),
   title: z.string().min(1),
   definition: z.string().optional().nullable(),
+  year: z.number().int().optional(),
 });
 
-export const updateBudgetSectionSchema = createBudgetSectionSchema
-  .omit({ clubId: true })
-  .partial();
+export const updateBudgetSectionSchema = z.object({
+  title: z.string().min(1).optional(),
+  definition: z.string().optional().nullable(),
+}).partial();
 
 export type CreateBudgetSectionInput = z.infer<typeof createBudgetSectionSchema>;
 export type UpdateBudgetSectionInput = z.infer<typeof updateBudgetSectionSchema>;
@@ -22,6 +24,7 @@ export async function postBudgetSectionController(input: CreateBudgetSectionInpu
       clubId: data.clubId,
       title: data.title,
       definition: data.definition ?? null,
+      ...(data.year !== undefined && { year: data.year }),
     },
   });
 }

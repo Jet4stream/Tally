@@ -7,6 +7,7 @@ type CreateBudgetSectionInput = {
   clubId: string;
   title: string;
   definition?: string | null;
+  year?: number;
 };
 
 export const createBudgetSection = async (

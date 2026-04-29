@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import BudgetSheet from "./TreasurerBudgetSheet";
 import PendingClubReimbursements from "./PendingClubReimbursements";
 import ReallocateBudget from "./ReallocateBudget";
 import type { Club } from "@prisma/client";
+
+const CURRENT_YEAR = 2026;
 
 export default function TCUBudgetDetailView({ club, onBack }: { club: Club; onBack: () => void }) {
   const [activePanel, setActivePanel] = useState<"reimbursements" | "reallocate">("reimbursements");
@@ -28,6 +31,12 @@ export default function TCUBudgetDetailView({ club, onBack }: { club: Club; onBa
               Dept ID: A901{club.deptId}
             </p>
           </div>
+          <Link
+            href={`/pages/budgetEditor?clubId=${club.id}&year=${CURRENT_YEAR}&clubName=${encodeURIComponent(club.name)}`}
+            className="text-sm font-semibold text-[#3172AE] border border-[#3172AE] rounded-lg px-4 py-2 hover:bg-blue-50 transition-colors font-[family-name:var(--font-public-sans)] whitespace-nowrap"
+          >
+            Edit {CURRENT_YEAR} Budget
+          </Link>
         </div>
       </div>
 
